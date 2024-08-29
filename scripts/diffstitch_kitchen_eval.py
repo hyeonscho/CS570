@@ -25,7 +25,7 @@ def import_config(config_name):
         return None
 
 
-Config = import_config("kitchen_partial_task_r3_v3")
+Config = import_config("kitchen_partial_H160_r3_v3")
 
 dataset_config = utils.Config(
     "datasets.CondSequenceDataset",
@@ -56,12 +56,12 @@ renderer = None
 loadpath = os.path.join(Config.bucket, Config.dataset, Config.prefix, "checkpoint")
 loadpath = (
     "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen-partial-v0/default_inv/"
-    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/task/40/v3_round3/checkpoint"
+    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/160/v3_round3/checkpoint"
 )
 
 print("\n\nloadpath = ", loadpath, end="\n\n")
 
-loadpath = os.path.join(loadpath, f"state_900000.pt")
+loadpath = os.path.join(loadpath, f"state_1000000.pt")
 state_dict = torch.load(loadpath, map_location=Config.device)
 
 torch.backends.cudnn.benchmark = True
@@ -141,8 +141,6 @@ obs_dim = observation_dim
 dream_len = Config.dream_len
 stitch_batch_size = 400
 
-num_eval = 15
-
 
 def evaluate(test_r, env_list):
 
@@ -208,15 +206,23 @@ def evaluate(test_r, env_list):
     return episode_rewards
 
 
-# test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-test_ret = [0.45, 0.5, 0.55, 0.6, 0.65]
-env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
+test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+# test_ret = [0.45, 0.5, 0.55, 0.6, 0.65]
 total_rewards = []
+total_num_eval = 30
+num_eval = 15  # more than 15 instance will raise error
+num_iter = total_num_eval // num_eval
+env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
 for test_r in test_ret:
-    total_rewards.append(evaluate(test_r, env_list))
+    iter_rewards = []
+    for _ in range(num_iter):
+        iter_rewards.append(evaluate(test_r, env_list))
+
+    iter_rewards = np.concatenate(iter_rewards)
+    total_rewards.append(iter_rewards)
 total_rewards = np.array(total_rewards)
 [env.close() for env in env_list]
 
 pdb.set_trace()
-with open("./diffstitch_kitchen_eval_v3_r3.pkl", "wb") as f:
+with open("./diffstitch_kitchen_eval_v3_r3_H160.pkl", "wb") as f:
     pickle.dump(total_rewards, f)

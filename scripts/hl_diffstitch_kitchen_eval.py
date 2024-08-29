@@ -25,7 +25,7 @@ def import_config(config_name):
         return None
 
 
-Config = import_config("kitchen_partial_hl_r3_v3")
+Config = import_config("kitchen_partial_hl_r3_v4")
 
 ll_dataset_config = utils.Config(
     "datasets.CondSequenceDataset",
@@ -167,9 +167,9 @@ ll_trainer = trainer_config(ll_diffusion, ll_dataset, renderer)
 
 ll_loadpath = (
     "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen-partial-v0/default_inv/"
-    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/task/40/v3_round3/checkpoint"
+    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/task/40/v4_round3/checkpoint"
 )
-ll_loadpath = os.path.join(ll_loadpath, f"state_900000.pt")
+ll_loadpath = os.path.join(ll_loadpath, f"state_1000000.pt")
 
 state_dict = torch.load(ll_loadpath, map_location=Config.device)
 ll_trainer.step = state_dict["step"]
@@ -182,7 +182,7 @@ hl_trainer = trainer_config(hl_diffusion, hl_dataset, renderer)
 
 hl_loadpath = (
     "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen-partial-v0/default_inv/"
-    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen/hl160/v3_round3/checkpoint"
+    "predict_epsilon_100_1000000.0/dropout_0.25/kitchen/hl160/v4_round3/checkpoint"
 )
 hl_loadpath = os.path.join(hl_loadpath, f"state_1000000.pt")
 
@@ -291,5 +291,5 @@ total_rewards = np.array(total_rewards)
 [env.close() for env in env_list]
 
 pdb.set_trace()
-with open("./hl_diffstitch_kitchen_eval_v3_r3.pkl", "wb") as f:
+with open("./hl_diffstitch_kitchen_eval_v4_r3.pkl", "wb") as f:
     pickle.dump(total_rewards, f)

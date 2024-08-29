@@ -127,7 +127,7 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         normalizer="LimitsNormalizer",
         preprocess_fns=[],
         max_path_length=1000,
-        max_n_episodes=12000,
+        max_n_episodes=50000,
         termination_penalty=0,
         use_padding=True,
         discount=0.99,
@@ -218,10 +218,10 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         """
         indices = []
         for i, path_length in enumerate(path_lengths):
-            max_start = min(path_length - 1, self.max_path_length - horizon)
+            max_start = min(path_length, self.max_path_length - horizon)
             if not self.use_padding:
                 max_start = min(max_start, path_length - horizon)
-            for start in range(max_start):
+            for start in range(max_start + 1):
                 end = start + horizon
                 indices.append((i, start, end))
 

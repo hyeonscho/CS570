@@ -38,7 +38,7 @@ def load_environment(name):
     if type(name) != str:
         ## name is already an environment
         return name
-    if "kitchen" in name:
+    if "Maze" not in name:
         import gym
         import d4rl
     else:
@@ -149,7 +149,10 @@ def sequence_dataset(env, preprocess_fn, data_file=None, task_data=False):
             if "kitchen" in env.name and (data_file is None):
                 episode_data = process_kitchen_episode(episode_data)
             if task_data:
-                tasks = task_dataset(episode_data)
+                if "kitchen" in env.name and data_file is None:
+                    tasks = kitchen_task_dataset(episode_data)
+                else:
+                    tasks = gym_task_data(episode_data)
                 for task in tasks:
                     yield task
             else:
@@ -164,7 +167,7 @@ def sequence_dataset(env, preprocess_fn, data_file=None, task_data=False):
 # -----------------------------------------------------------------------------#
 
 
-def task_dataset(seq_dataset):
+def kitchen_task_dataset(seq_dataset):
 
     tasks = []
 
@@ -183,10 +186,33 @@ def task_dataset(seq_dataset):
             tasks.append(task_data)
             task_data = collections.defaultdict(list)
 
+    return tasks
+
+
+def gym_task_data(seq_dataset):
+
+    tasks = []
+
+    task_data = collections.defaultdict(list)
+    rewards = seq_dataset["rewards"]
+
+    l = rewards.shape[0]
+    for i in range(l):
+
+        for k in seq_dataset:
+            task_data[k].append(seq_dataset[k][i])
+
+        if (i + 1) % 40 == 0:
+            for k in task_data:
+                task_data[k] = np.array(task_data[k])
+            tasks.append(task_data)
+            task_data = collections.defaultdict(list)
+
     if len(task_data) > 0:
         for k in task_data:
             task_data[k] = np.array(task_data[k])
         tasks.append(task_data)
+
     return tasks
 
 

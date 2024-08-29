@@ -6,9 +6,11 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-v2/task/40"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-v2/task/40"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-v2/flat120_r2"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
+    job_name = (
+        "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-v2/flat120_r2"
+    )
     dataset = "walker2d-medium-replay-v2"
     test_ret = 1.0
     job_counter = 1
@@ -33,7 +35,7 @@ class Config(ParamsProto):
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 150.0  # Determined using rewards from the dataset
+    returns_scale = 250.0  # Determined using rewards from the dataset
     loader = "datasets.CondSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
@@ -41,14 +43,14 @@ class Config(ParamsProto):
     use_padding = True
     include_returns = True
     discount = 0.99
-    max_path_length = 40
+    max_path_length = 200
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
     stitch = False
     task_data = True
     jump = 1
-    aug_data_file = None
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_walker2d-medium-replay-v2_H40-v1.pkl"
     data_file = None
 
     ## training
@@ -71,7 +73,7 @@ class Config(ParamsProto):
     # model
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
-    horizon = 40
+    horizon = 120
     train_only_diffuser = False
     n_diffusion_steps = 100
     action_weight = 10

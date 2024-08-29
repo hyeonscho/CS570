@@ -129,7 +129,7 @@ class RewardPredictingModel:
         # create dynamics model
         if "walker2d" in env_name:
             self.dynamics_model = TransitionModel(
-                obs_space=env.observation_space["observation"],
+                obs_space=env.observation_space,
                 action_space=env.action_space,
                 static_fns=StaticFnsWalker2d,
                 lr=0.001,
@@ -137,7 +137,7 @@ class RewardPredictingModel:
             )
         if "hopper" in env_name:
             self.dynamics_model = TransitionModel(
-                obs_space=env.observation_space["observation"],
+                obs_space=env.observation_space,
                 action_space=env.action_space,
                 static_fns=StaticFnsHopper,
                 lr=0.001,
@@ -145,7 +145,7 @@ class RewardPredictingModel:
             )
         if "cheetah" in env_name:
             self.dynamics_model = TransitionModel(
-                obs_space=env.observation_space["observation"],
+                obs_space=env.observation_space,
                 action_space=env.action_space,
                 static_fns=StaticFnsCheetah,
                 lr=0.001,
