@@ -11,7 +11,7 @@
 - Create customized maze map
   Navigate to `Gymnasium-Robotics/gymnasium_robotics/envs/maze`, create new maze layout in `maps.py`.
 - Regiest new environment
-  Regester new environment in the file 'gymnasium_robotics/__init__.py`
+  Regester new environment in the file `gymnasium_robotics/__init__.py`
   You can find my example code under the folder `./my_example`.
 
 - Generate offline dataset
