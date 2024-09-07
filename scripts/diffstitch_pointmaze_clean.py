@@ -446,7 +446,7 @@ while generated_transitions < 1000000:
         n_try = 0
         while len(available_positions) == 0:
             candidates_trj2_info = data_buffer.sample_batch_traj(
-                sample_optim_batch, dataset, []
+                sample_optim_batch, dataset, [region_idx1]
             )
 
             candidates_trj2_obs = np.stack(
@@ -603,6 +603,8 @@ while generated_transitions < 1000000:
         return_info["obs"] = return_info["obs"][:-1]
         return_info["dones"] = np.full((aug_cnt,), False, dtype=bool)
         return_info["region_idx"] = region_idx1 + region_idx2
+        return_info["rew"] = pred_rew.squeeze(-1)
+        return_info["act"] = actions
 
         for _ in ["obs", "rew", "dones", "next_obs", "act"]:
             return_info[_] = return_info[_][:]
@@ -642,5 +644,5 @@ while generated_transitions < 1000000:
         )
 
 pdb.set_trace()
-with open("./no_cluster_stitching/round1_stitch_point_large.pkl", "wb") as f:
+with open("./clean_test/round1_stitch_point_large.pkl", "wb") as f:
     pickle.dump(aug_list, f)

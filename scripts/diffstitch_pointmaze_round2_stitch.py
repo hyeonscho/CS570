@@ -517,7 +517,7 @@ dream_len = Config.dream_len
 stitch_batch_size = 1000
 
 
-with open("./no_cluster_stitching/round1_stitch_point_large.pkl", "rb") as f:
+with open("./clean_test/round1_stitch_point_large.pkl", "rb") as f:
     stitched_round1_data = pickle.load(f)
 
 stitched_trjs = []
@@ -555,7 +555,7 @@ for i in range(stitch_round1_dataset.num_traj):
     info = stitch_round1_dataset.get_full_info_traj(i)
     stitch_round1_buffer.insert_traj(info)
 
-with open("./no_cluster_stitching/round2_stitch_point_large.pkl", "rb") as f:
+with open("./clean_test/round2_stitch_point_large.pkl", "rb") as f:
     stitched_round2_data = pickle.load(f)
 stitched_trjs = []
 for i in range(len(stitched_round2_data)):
@@ -630,7 +630,7 @@ while generated_transitions < 1000000:
         n_try = 0
         while len(available_positions) == 0:
             candidates_trj2_info = data_buffer.sample_batch_traj(
-                sample_optim_batch, dataset, []
+                sample_optim_batch, dataset, stitched_region
             )
 
             candidates_trj2_obs = np.stack(
@@ -785,6 +785,8 @@ while generated_transitions < 1000000:
         return_info["obs"] = return_info["obs"][:-1]
         return_info["dones"] = np.full((aug_cnt,), False, dtype=bool)
         return_info["region_idx"] = "".join(stitched_region) + region_idx2
+        return_info["rew"] = pred_rew.squeeze(-1)
+        return_info["act"] = actions
 
         for _ in ["obs", "rew", "dones", "next_obs", "act"]:
             return_info[_] = return_info[_][:]
@@ -824,5 +826,5 @@ while generated_transitions < 1000000:
         )
 
 pdb.set_trace()
-with open("./no_cluster_stitching/round3_stitch_point_large.pkl", "wb") as f:
+with open("./clean_test/round3_stitch_point_large.pkl", "wb") as f:
     pickle.dump(aug_list_round2, f)
