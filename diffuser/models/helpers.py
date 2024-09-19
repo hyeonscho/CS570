@@ -30,18 +30,18 @@ class SinusoidalPosEmb(nn.Module):
 
 
 class Downsample1d(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, k=3):
         super().__init__()
-        self.conv = nn.Conv1d(dim, dim, 3, 2, 1)
+        self.conv = nn.Conv1d(dim, dim, k, 2, 1)
 
     def forward(self, x):
         return self.conv(x)
 
 
 class Upsample1d(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, k=4):
         super().__init__()
-        self.conv = nn.ConvTranspose1d(dim, dim, 4, 2, 1)
+        self.conv = nn.ConvTranspose1d(dim, dim, k, 2, 1)
 
     def forward(self, x):
         return self.conv(x)
@@ -102,8 +102,9 @@ def cosine_beta_schedule(timesteps, s=0.008, dtype=torch.float32):
 def apply_conditioning(x, conditions, action_dim):
     try:
         obs_dim = conditions.shape[2] // 2
-        x[:, :, action_dim:] = (
-            torch.as_tensor(x[:, :, action_dim:]) * conditions[:, :, :obs_dim]
+        x[:, :, action_dim : action_dim + obs_dim] = (
+            torch.as_tensor(x[:, :, action_dim : action_dim + obs_dim])
+            * conditions[:, :, :obs_dim]
         ) + conditions[:, :, obs_dim:]
     except:
         for t, val in conditions.items():

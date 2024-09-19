@@ -8,6 +8,7 @@ import time
 import diffuser.utils as utils
 import torch
 import importlib
+import numpy as np
 import pdb
 
 
@@ -58,6 +59,8 @@ def main(**deps):
         task_data=Config.task_data,
         aug_data_file=Config.aug_data_file,
         jump=Config.jump,
+        segment_return=Config.segment_return,
+        jumps=Config.jumps,
     )
 
     render_config = utils.Config(
@@ -67,7 +70,7 @@ def main(**deps):
     )
 
     dataset = dataset_config()
-    renderer = render_config()
+    renderer = None
     if "kitchen" in Config.dataset:
         renderer = None
     observation_dim = dataset.observation_dim
@@ -80,7 +83,7 @@ def main(**deps):
         model_config = utils.Config(
             Config.model,
             savepath="model_config.pkl",
-            horizon=Config.horizon,
+            horizon=int(np.ceil(Config.horizon / Config.jump)),
             transition_dim=observation_dim,
             cond_dim=observation_dim,
             dim_mults=Config.dim_mults,
@@ -89,11 +92,12 @@ def main(**deps):
             condition_dropout=Config.condition_dropout,
             calc_energy=Config.calc_energy,
             device=Config.device,
+            ll=True,
         )
         diffusion_config = utils.Config(
             Config.diffusion,
             savepath="diffusion_config.pkl",
-            horizon=Config.horizon // Config.jump,
+            horizon=int(np.ceil(Config.horizon / Config.jump)),
             observation_dim=observation_dim,
             action_dim=action_dim,
             n_timesteps=Config.n_diffusion_steps,
@@ -111,6 +115,46 @@ def main(**deps):
             returns_condition=Config.returns_condition,
             condition_guidance_w=Config.condition_guidance_w,
             device=Config.device,
+        )
+    elif Config.diffusion == "models.GaussianInvDynDiffusionCL":
+        model_config = utils.Config(
+            Config.model,
+            savepath="model_config.pkl",
+            horizon=dataset.segmt_len,
+            transition_dim=observation_dim + Config.level_dim,
+            cond_dim=observation_dim,
+            dim_mults=Config.dim_mults,
+            returns_condition=Config.returns_condition,
+            dim=Config.dim,
+            condition_dropout=Config.condition_dropout,
+            calc_energy=Config.calc_energy,
+            device=Config.device,
+            ll=True,
+            level_dim=Config.level_dim,
+        )
+        diffusion_config = utils.Config(
+            Config.diffusion,
+            savepath="diffusion_config.pkl",
+            horizon=dataset.segmt_len,
+            observation_dim=observation_dim,
+            action_dim=action_dim,
+            n_timesteps=Config.n_diffusion_steps,
+            loss_type=Config.loss_type,
+            clip_denoised=Config.clip_denoised,
+            predict_epsilon=Config.predict_epsilon,
+            hidden_dim=Config.hidden_dim,
+            ar_inv=Config.ar_inv,
+            train_only_inv=Config.train_only_inv,
+            train_only_diffuser=Config.train_only_diffuser,
+            ## loss weighting
+            action_weight=Config.action_weight,
+            loss_weights=Config.loss_weights,
+            loss_discount=Config.loss_discount,
+            returns_condition=Config.returns_condition,
+            condition_guidance_w=Config.condition_guidance_w,
+            device=Config.device,
+            level_dim=Config.level_dim,
+            num_level=len(Config.jumps),
         )
     else:
         model_config = utils.Config(

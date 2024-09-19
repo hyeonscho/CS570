@@ -688,8 +688,166 @@ class GaussianInvDynDiffusion(nn.Module):
 
         return loss, info
 
-    def forward(self, cond, *args, **kwargs):
-        return self.conditional_sample(cond=cond, *args, **kwargs)
+    def forward(self, cond, level, *args, **kwargs):
+        return self.conditional_sample(cond=cond, level=level, *args, **kwargs)
+
+
+class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
+    def __init__(self, *args, **kwargs):
+        self.level_dim = kwargs.pop("level_dim")
+        self.num_level = kwargs.pop("num_level")
+
+        super().__init__(*args, **kwargs)
+        self.level_layer = nn.Linear(self.num_level, self.level_dim)
+        self.transition_dim += self.level_dim
+
+    def p_mean_variance(self, x, cond, level, t, returns=None):
+        if self.returns_condition:
+            # epsilon could be epsilon or x0 itself
+            epsilon_cond = self.model(
+                torch.cat([x, level], dim=-1), cond, t, returns, use_dropout=False
+            )
+            epsilon_uncond = self.model(
+                torch.cat([x, level], dim=-1), cond, t, returns, force_dropout=True
+            )
+            epsilon = epsilon_uncond + self.condition_guidance_w * (
+                epsilon_cond - epsilon_uncond
+            )
+        else:
+            epsilon = self.model(torch.cat([x, level], dim=-1), cond, t)
+
+        t = t.detach().to(torch.int64)
+        x_recon = self.predict_start_from_noise(x, t=t, noise=epsilon)
+
+        if self.clip_denoised:
+            x_recon.clamp_(-1.0, 1.0)
+        else:
+            assert RuntimeError()
+
+        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
+            x_start=x_recon, x_t=x, t=t
+        )
+        return model_mean, posterior_variance, posterior_log_variance
+
+    @torch.no_grad()
+    def p_sample(self, x, cond, level, t, returns=None):
+        b, *_, device = *x.shape, x.device
+        model_mean, _, model_log_variance = self.p_mean_variance(
+            x=x, cond=cond, level=level, t=t, returns=returns
+        )
+        noise = 0.5 * torch.randn_like(x)
+        # no noise when t == 0
+        nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
+        return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
+
+    @torch.no_grad()
+    def p_sample_loop(
+        self, shape, cond, level, returns=None, verbose=True, return_diffusion=False
+    ):
+        device = self.betas.device
+
+        batch_size = shape[0]
+        x = 0.5 * torch.randn(shape, device=device)
+        x = apply_conditioning(x, cond, 0)
+
+        if return_diffusion:
+            diffusion = [x]
+
+        progress = utils.Progress(self.n_timesteps) if verbose else utils.Silent()
+        for i in reversed(range(0, self.n_timesteps)):
+            timesteps = torch.full((batch_size,), i, device=device, dtype=torch.long)
+            x = self.p_sample(x, cond, level, timesteps, returns)
+            x = apply_conditioning(x, cond, 0)
+
+            progress.update({"t": i})
+
+            if return_diffusion:
+                diffusion.append(x)
+
+        progress.close()
+
+        if return_diffusion:
+            return x, torch.stack(diffusion, dim=1)
+        else:
+            return x
+
+    @torch.no_grad()
+    def conditional_sample(
+        self, cond, level, returns=None, horizon=None, *args, **kwargs
+    ):
+
+        # cond
+        """
+        conditions : [ (time, state), ... ]
+        """
+        device = self.betas.device
+        # batch_size = len(cond[0])
+        # if(batch_size > 60):
+        # batch_size = 1
+        try:
+            batch_size = cond.shape[0]
+        except:
+            batch_size = len(cond[0])
+            if batch_size > 60:
+                batch_size = 1
+        horizon = horizon or self.horizon
+        shape = (batch_size, horizon, self.observation_dim)
+        level_emb = self.level_layer(level)
+
+        return self.p_sample_loop(shape, cond, level_emb, returns, *args, **kwargs)
+
+    def p_losses(self, x_start, cond, t, level, returns=None):
+        noise = torch.randn_like(x_start)
+        x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
+        x_noisy = apply_conditioning(x_noisy, cond, 0)  # x_noisy
+        x_recon = self.model(torch.cat([x_noisy, level], dim=-1), cond, t, returns)
+
+        if not self.predict_epsilon:
+            x_recon = apply_conditioning(x_recon, cond, 0)
+
+        assert noise.shape == x_recon.shape
+
+        if self.predict_epsilon:
+            loss_weights_fix = self.get_loss_weights_fix(1, cond)
+            loss, info = Losses["state_l2"](loss_weights_fix)(x_recon, noise)
+        else:
+            loss, info = self.loss_fn(x_recon, x_start)
+
+        return loss, info
+
+    def loss(self, x, cond, level, returns=None):
+        level_emb = self.level_layer(level)
+        batch_size = len(x)
+
+        t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
+
+        diffuse_loss, info = self.p_losses(
+            x[:, :, self.action_dim :], cond, t, level_emb, returns
+        )
+        # Calculating inv loss
+        level_idx = level[:, 0].argmax(-1)  # b,
+        level1_idx = torch.where(level_idx == 0)[0]
+        level1_x = torch.index_select(x, dim=0, index=level1_idx)
+        x_t = level1_x[:, :-1, self.action_dim :]
+        a_t = level1_x[:, :-1, : self.action_dim]
+        x_t_1 = level1_x[:, 1:, self.action_dim :]
+        x_comb_t = torch.cat([x_t, x_t_1], dim=-1)
+        # x_comb_t = x_comb_t.reshape(-1, 2 * self.observation_dim)
+        # a_t = a_t.reshape(-1, self.action_dim)
+        if self.ar_inv:
+            inv_loss = self.inv_model.calc_loss(x_comb_t, a_t)
+        else:
+            pred_a_t = self.inv_model(x_comb_t)
+            inv_loss = F.mse_loss(pred_a_t, a_t)
+        info.update(
+            {
+                "a0_loss": inv_loss,
+            }
+        )
+
+        loss = (1 / 2) * (diffuse_loss + inv_loss)
+
+        return loss, info
 
 
 class ARInvModel(nn.Module):
@@ -991,7 +1149,7 @@ class ActionGaussianDiffusion(nn.Module):
         return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
 
     def grad_p_sample_loop(
-        self, shape, cond, returns=None, verbose=True, return_diffusion=False
+        self, shape, cond, level, returns=None, verbose=True, return_diffusion=False
     ):
         device = self.betas.device
 
