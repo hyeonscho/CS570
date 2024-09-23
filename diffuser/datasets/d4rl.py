@@ -202,7 +202,7 @@ def gym_task_data(seq_dataset):
         for k in seq_dataset:
             task_data[k].append(seq_dataset[k][i])
 
-        if (i + 1) % 40 == 0:
+        if (i + 1) % 50 == 0:
             for k in task_data:
                 task_data[k] = np.array(task_data[k])
             tasks.append(task_data)
