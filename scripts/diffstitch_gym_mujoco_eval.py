@@ -148,6 +148,7 @@ def main(**deps):
         dim=Config.dim,
         returns_condition=Config.returns_condition,
         device=Config.device,
+        ll=True if Config.jump == 1 else False,
     )
 
     diffusion_config = utils.Config(
@@ -198,7 +199,7 @@ def main(**deps):
     assert trainer.ema_model.condition_guidance_w == Config.condition_guidance_w
     num_eval = 15
 
-    test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.15]
     # if "hopper" in Config.dataset:
     #     test_ret = [0.15, 0.2, 0.25, 0.3]
     # if "walker2d" in Config.dataset:
@@ -213,7 +214,14 @@ def main(**deps):
     total_rewards = np.array(total_rewards)
     [env.close() for env in env_list]
 
-    with open(f"./diffstitch_{Config.dataset}_r1.pkl", "wb") as f:
+    save_path = os.path.join(
+        Config.bucket,
+        Config.dataset,
+        Config.prefix,
+        "checkpoint",
+        f"evaluation.pkl",
+    )
+    with open(save_path, "wb") as f:
         pickle.dump(total_rewards, f)
 
 

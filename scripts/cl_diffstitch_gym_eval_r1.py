@@ -208,10 +208,8 @@ def main(**deps):
     trainer = trainer_config(diffusion, dataset, renderer)
     loadpath = os.path.join(Config.bucket, Config.dataset, Config.prefix, "checkpoint")
 
-    if "halfcheetah" not in Config.dataset:
-        loadpath = os.path.join(loadpath, f"state_800000.pt")
-    else:
-        loadpath = os.path.join(loadpath, f"state_1000000.pt")
+    loadpath = os.path.join(loadpath, f"state_400000.pt")
+    print(f"loaded model form {loadpath}")
 
     state_dict = torch.load(loadpath, map_location=Config.device)
     trainer.step = state_dict["step"]

@@ -72,7 +72,7 @@ def task_dataset(seq_dataset):
         for k in seq_dataset:
             task_data[k].append(seq_dataset[k][i])
 
-        if (i + 1) % 40 == 0:
+        if (i + 1) % 50 == 0:
             for k in task_data:
                 task_data[k] = np.array(task_data[k])
             tasks.append(task_data)
@@ -90,14 +90,6 @@ def load_data(data_file):
     with open(data_file, "rb") as fp:
         ds = pickle.load(fp)
     return ds
-
-
-def obtain_region_idx(idx):
-    digits = []
-    l = len(idx)
-    for i in range(l):
-        digits.append(idx[i])
-    return digits
 
 
 class LoadSequenceDataset:
@@ -163,7 +155,6 @@ class LoadSequenceDataset:
             if bool(done) or final_timestep:
                 for _ in current_path:
                     current_path[_] = np.array(current_path[_])
-
                 if current_path["obs"].shape[0] > 1:
                     move.append(current_path["obs"][1:] - current_path["obs"][:-1])
                 task_path = task_dataset(current_path)
@@ -254,23 +245,34 @@ class OptimalBuffer:
         self.returns_list -= self.returns_list.max()
         self.returns_list = np.exp(self.returns_list)  # make if positive
 
-    def sample_batch_traj(self, optim_batch, region_avoid):
-        # stored in (d-rtg, obs:(100, obs_dim))
-
+    def gen_sample_idx(self, optim_batch, region_avoid, uniform=False):
         sample_idx = []
 
         for k in self.region_map:
             if k not in region_avoid:
                 sample_idx += self.region_map[k]
 
-        sample_p = self.returns_list[np.array(sample_idx)]
-        sample_p = sample_p / sample_p.sum()
-        batch_info = []
+        if uniform:
+            sample_p = None
+        else:
+            sample_p = self.returns_list[np.array(sample_idx)]
+            sample_p = sample_p / sample_p.sum()
         if len(sample_idx) < optim_batch:
             optim_batch = len(sample_idx)
+
         batch_index = np.random.choice(
             sample_idx, size=optim_batch, replace=False, p=sample_p
         )
+        return batch_index
+
+    def repeat_sample_idx(batch_index, repeat):
+        return np.repeat(batch_index, repeat)
+
+    def sample_batch_traj(self, optim_batch, region_avoid, uniform=False):
+        # stored in (d-rtg, obs:(100, obs_dim))
+
+        batch_index = self.gen_sample_idx(optim_batch, region_avoid, uniform=uniform)
+
         batch_info = [self.info[_] for _ in batch_index]
 
         return batch_info
@@ -344,23 +346,24 @@ def stitch(
     trainer,
     dynamics_model,
     env_dataset,
-    stitch_dataset,
 ):
 
     horizon = Config.horizon
     device = Config.device
     dynamics_deviate = Config.dynamics_deviate
     test_ret = Config.test_ret
-    sample_optim_batch = min(data_buffer.num_trj, 12000)
+    sample_optim_batch = min(12000, data_buffer.num_trj)
     dreamer_similarity = Config.dreamer_similarity
     stitch_L = 1
-    stitch_R = 10
+    stitch_R = 30
     obs_dim = dataset.observation_dim
     action_dim = dataset.action_dim
     dream_len = Config.dream_len
-    stitch_batch_size = 2000
+    stitch_batch_size = min(4000, stitch_buffer.num_trj)
 
     gen_size = env_dataset.data_size
+    if "walker2d-medium-replay" in Config.dataset:
+        gen_size = 2 * gen_size
     move_mean = env_dataset.move_mean
     move_std = env_dataset.move_std
     std_coef = Config.std_coef
@@ -374,7 +377,7 @@ def stitch(
 
         timer_2()
 
-        trj1_info = stitch_buffer.sample_batch_traj(stitch_batch_size, [])
+        trj1_info = stitch_buffer.sample_batch_traj(stitch_batch_size, [], uniform=True)
 
         trj1_obs = np.stack([info["obs"] for info in trj1_info], axis=0)
         trj1_normed_obs = dataset.normalizer.normalize(trj1_obs, "observations")
@@ -397,49 +400,50 @@ def stitch(
         positions = []
         for i in range(0, stitch_batch_size):
             region_idx1 = trj1_info[i]["region_idx"]
-            stitched_region = obtain_region_idx(region_idx1)
 
             # sample a batch of optimal trajectories
             available_positions = []
-
-            candidates_trj2_info = data_buffer.sample_batch_traj(sample_optim_batch, [])
-
-            candidates_trj2_obs = np.stack(
-                [info["obs"] for info in candidates_trj2_info], axis=0
-            )
-            candidates_trj2_obs = torch.tensor(candidates_trj2_obs).to(device)
-
-            trj2_start = np.random.randint(0, 1, size=candidates_trj2_obs.shape[0])
-            # (stitch_L - stitch_R) x sample_optim_batch
-            cosin_sim = (
-                cosine_similarity_pt(
-                    gen_obs[i, stitch_L:stitch_R],
-                    candidates_trj2_obs[
-                        np.arange(candidates_trj2_obs.shape[0]), trj2_start
-                    ],
+            n_try = 0
+            while len(available_positions) == 0:
+                candidates_trj2_info = data_buffer.sample_batch_traj(
+                    sample_optim_batch, [region_idx1]
                 )
-                .cpu()
-                .numpy()
-            )
-            # see which trajectory has a similarity greater than threshold
 
-            if np.max(cosin_sim) > dreamer_similarity:
-                trj1_pos, trj2_pos = np.unravel_index(
-                    cosin_sim.argmax(), cosin_sim.shape
+                candidates_trj2_obs = np.stack(
+                    [info["obs"] for info in candidates_trj2_info], axis=0
                 )
-                available_positions.append((trj1_pos, trj2_pos, trj2_start[trj2_pos]))
-                # for cur_pos in range(stitch_L, stitch_R):
+                candidates_trj2_obs = torch.tensor(candidates_trj2_obs).to(device)
 
-                #     cur_sim = cosin_sim[cur_pos - stitch_L]
+                # (stitch_L - stitch_R) x sample_optim_batch
+                cosin_sim = (
+                    cosine_similarity_pt(
+                        gen_obs[i, stitch_L:stitch_R],
+                        candidates_trj2_obs[:, 0],
+                    )
+                    .cpu()
+                    .numpy()
+                )
+                """
+                if np.max(cosin_sim) > dreamer_similarity:
+                    pos = np.where(cosin_sim.ravel() > dreamer_similarity)[0]
+                    for p in pos:
+                        _, trj2_pos = np.unravel_index(p, cosin_sim.shape)
 
-                #     if np.max(cur_sim) < dreamer_similarity:
-                #         continue
-                #     temp_pos = list(np.where(cur_sim >= dreamer_similarity)[0])
-                #     for pos in temp_pos:
-                #         available_positions.append(pos)
-                # n_try += 1
-                # if n_try > 3:
-                #     break
+                        available_positions.append(trj2_pos)
+                """
+                # see which trajectory has a similarity greater than threshold
+                for cur_pos in range(stitch_L, stitch_R - 1):
+
+                    cur_sim = cosin_sim[cur_pos - stitch_L]
+
+                    if np.max(cur_sim) < dreamer_similarity:
+                        continue
+                    temp_pos = list(np.where(cur_sim >= dreamer_similarity)[0])
+                    for pos in temp_pos:
+                        available_positions.append(pos)
+                n_try += 1
+                if n_try > 3:
+                    break
 
             if len(available_positions) == 0:
                 # pdb.set_trace()
@@ -451,23 +455,21 @@ def stitch(
             mark_succ[i] = 1
             chosen_index = random.randint(0, len(available_positions) - 1)
 
-            best_pos, pos, trj2_start_shift = available_positions[chosen_index]
+            pos = available_positions[chosen_index]
             trj2_info = candidates_trj2_info[pos]
 
             traj2_obs = trj2_info["obs"]
             traj2_normed_obs = dataset.normalizer.normalize(traj2_obs, "observations")
             traj2_idx = candidates_trj2_info[pos]["traj_idx"]
-            traj2_start_idx = (
-                candidates_trj2_info[pos]["segment_idx"] + trj2_start_shift
-            )
+            traj2_start_idx = candidates_trj2_info[pos]["segment_idx"]
             region_idx2 = candidates_trj2_info[pos]["region_idx"]
 
             # (stitch_L - stitch_R) x 1
-            # sim_i = cosin_sim[:, available_positions[chosen_index]]
-            # best_pos = np.argmax(sim_i, axis=0) + stitch_L
+            sim_i = cosin_sim[:, pos]
+            best_pos = np.argmax(sim_i, axis=0) + stitch_L
 
-            start_index = dream_len - 1
-            end_index = best_pos + 1
+            start_index = dream_len
+            end_index = best_pos - 1
             positions.append(
                 [
                     start_index,
@@ -479,10 +481,12 @@ def stitch(
                 ]
             )
             cond_p[i][:, obs_dim:] = 0
-            cond_p[i][: start_index + 1, :obs_dim] = 0
-            cond_p[i][: start_index + 1, obs_dim:] = trj1_normed_obs[i][-1:]
-            cond_p[i][end_index:, :obs_dim] = 0
-            cond_p[i][end_index:, obs_dim:] = traj2_normed_obs[: horizon - end_index]
+            cond_p[i][:start_index, :obs_dim] = 0
+            cond_p[i][:start_index, obs_dim:] = trj1_normed_obs[i][
+                -1:
+            ]  # start from the last state
+            cond_p[i][best_pos:, :obs_dim] = 0
+            cond_p[i][best_pos:, obs_dim:] = traj2_normed_obs[: horizon - best_pos]
 
         conditions_p = torch.tensor(cond_p).to(device)
         returns_p = to_device(test_ret * torch.ones(stitch_batch_size, 1), device)
@@ -505,7 +509,6 @@ def stitch(
 
         total_number_traj = sum(mark_succ)
         filtered_number_traj = 0
-
         for j in range(0, stitch_batch_size):
 
             # failed to reach threshold
@@ -519,18 +522,17 @@ def stitch(
             region_idx1 = positions[j][4]
             region_idx2 = positions[j][5]
 
-            if end_index - start_index >= 1:
-                move = (
-                    obss_p[j][start_index + 1 : end_index + 1]
-                    - obss_p[j][start_index:end_index]
-                )
-                if (move > move_mean + std_coef * move_std).any() or (
-                    move < move_mean - std_coef * move_std
-                ).any():
-                    # print(f"found jumps in {j}th sample")
-                    continue
+            move = (
+                obss_p[j][start_index : end_index + 2]
+                - obss_p[j][start_index - 1 : end_index + 1]
+            )
+            if (move > move_mean + std_coef * move_std).any() or (
+                move < move_mean - std_coef * move_std
+            ).any():
+                # print(f"found jumps in {j}th sample")
+                continue
 
-            len_path_data = end_index - start_index
+            len_path_data = end_index - start_index + 1
             return_info = {}
             return_info["act"] = np.zeros(shape=(len_path_data, action_dim))
             return_info["rew"] = np.zeros(shape=(len_path_data))
@@ -538,8 +540,8 @@ def stitch(
 
             obs_comb = torch.cat(
                 [
-                    samples_p[j, start_index : end_index - 1, :],
-                    samples_p[j, start_index + 1 : end_index, :],
+                    samples_p[j, start_index - 1 : end_index + 1, :],
+                    samples_p[j, start_index : end_index + 2, :],
                 ],
                 dim=-1,
             )
@@ -549,22 +551,34 @@ def stitch(
             actions = dataset.normalizer.unnormalize(normed_actions, "actions")
 
             dynamics_info = dynamics_model.predict(
-                obss_p[j, start_index : end_index - 1], actions
+                obss_p[j, start_index - 1 : end_index + 1], actions
             )
+            if dynamics_info["done"].any():
+                continue
             pred_obs = dynamics_info["next_obs"]
             pred_rew = dynamics_info["reward"]
 
-            deviate = pred_obs - obss_p[j][start_index + 1 : end_index]
-            if (deviate > move_mean + std_coef * move_std).any() or (
-                deviate < move_mean - std_coef * move_std
-            ).any():
+            normed_pred_obs = dataset.normalizer.normalize(pred_obs, "observations")
+            pred_deviate = np.linalg.norm(
+                normed_pred_obs - np_samples_p[j, start_index : end_index + 2], axis=-1
+            )
+            if (pred_deviate > dynamics_deviate).any():
                 filtered_number_traj += 1
-                deviate = deviate.max()
+                deviate = pred_deviate.max()
                 # print(f"dynamics: {j}th filtered deviate {deviate:.3f}")
                 continue
 
+            # deviate = pred_obs - obss_p[j][start_index : end_index + 2]
+            # if (deviate > move_mean + dynamics_deviate * move_std).any() or (
+            #     deviate < move_mean - dynamics_deviate * move_std
+            # ).any():
+            #     filtered_number_traj += 1
+            #     deviate = deviate.max()
+            #     # print(f"dynamics: {j}th filtered deviate {deviate:.3f}")
+            #     continue
+
             succ_cnt += 1
-            return_info["obs"] = obss_p[j][start_index : end_index + 1]
+            return_info["obs"] = obss_p[j][start_index - 1 : end_index + 2]
 
             aug_cnt = return_info["rew"].shape[0]
 
@@ -572,7 +586,6 @@ def stitch(
             return_info["obs"] = return_info["obs"][:-1]
             return_info["dones"] = np.full((aug_cnt,), False, dtype=bool)
             return_info["region_idx"] = region_idx1 + region_idx2
-            return_info["rew"] = pred_rew.squeeze(-1)
             return_info["rew"] = pred_rew.squeeze(-1)
             return_info["act"] = actions
 
@@ -588,7 +601,7 @@ def stitch(
                 # print(f"negative return: {j}th filtered")
                 continue
 
-            trj1_len = trj1_info[j]["segment_idx"] + horizon
+            trj1_len = trj1_info[j]["segment_idx"]
             trj2_len = (
                 env_dataset.get_full_info_traj(traj2_idx)["obs"].shape[0]
                 - traj2_start_idx
@@ -625,126 +638,8 @@ def stitch(
                 )
             )
 
-    with open(f"./gym_v4/round2_stitch_{Config.dataset}_H40.pkl", "wb") as f:
+    with open(f"./gym_v8/round1_stitch_{Config.dataset}_H40.pkl", "wb") as f:
         pickle.dump(aug_list, f)
-
-
-class StitchDataset:
-    def __init__(self, trajectories):
-        self.paths = trajectories
-        self.num_traj = len(self.paths)
-        print(f"processed {self.num_traj} trajectories")
-
-    def get_full_info_traj(self, idx, gamma=0.99):
-        obs = []
-        act = []
-        rew = []
-        next_obs = []
-        dones = []
-        region_idx = []
-        obs = np.copy(self.paths[idx]["obs"])
-        act = np.copy(self.paths[idx]["act"])
-        rew = np.copy(self.paths[idx]["rew"])
-        next_obs = np.copy(self.paths[idx]["next_obs"])
-        dones = np.copy(self.paths[idx]["dones"])
-        region_idx = self.paths[idx]["region_idx"]
-
-        total_return = np.sum(rew)
-        discounted_return = 0
-        for i in range(rew.shape[0] - 1, -1, -1):
-            discounted_return = discounted_return * gamma + rew[i]
-        return {
-            "obs": obs,
-            "act": act,
-            "rew": rew,
-            "next_obs": next_obs,
-            "dones": dones,
-            "total_return": total_return,
-            "discounted_return": discounted_return,
-            "horizon": rew.shape[0],
-            "region_idx": region_idx,
-            "trajectory_idx": idx,
-        }
-
-
-class StitchBuffer:
-    def __init__(self, horizon, ratio=0.1, gamma=0.99):
-        self.gamma = gamma
-        self.ratio = ratio
-        self.info = []
-        self.horizon = horizon
-        self.region_map = defaultdict(list)
-        self.count = 0
-        self.returns_list = []
-        self.num_trj = 0
-
-    def insert_traj(self, info):
-        current_total_reward = 0
-        current_discounted_reward = 0
-        for i in range(info["horizon"] - 1, -1, -1):
-            current_total_reward += info["rew"][i]
-            current_discounted_reward = (
-                current_discounted_reward * self.gamma + info["rew"][i]
-            )
-            if info["horizon"] - i >= self.horizon:
-                current_info = {
-                    "discounted_reward": current_discounted_reward,
-                    "obs": info["obs"][i : i + self.horizon],
-                    "segment_idx": i,
-                    "region_idx": info["region_idx"][i : i + self.horizon],
-                    "traj_idx": info["trajectory_idx"],
-                    "rew": info["rew"][i : i + self.horizon],
-                }
-                self.info.append(current_info)
-                self.region_map[info["region_idx"]].append(self.count)
-                self.count += 1
-                self.returns_list.append(sum(info["rew"]))
-                self.num_trj += 1
-
-    def finalize(
-        self,
-    ):
-        self.returns_list = np.array(self.returns_list)
-        self.returns_list -= self.returns_list.max()
-        self.returns_list = np.exp(self.returns_list)  # make if positive
-
-    def sample_batch_traj(self, optim_batch, region_avoid):
-        # stored in (d-rtg, obs:(100, obs_dim))
-
-        sample_idx = []
-        for k in self.region_map:
-            if k not in region_avoid:
-                sample_idx += self.region_map[k]
-
-        sample_p = self.returns_list[np.array(sample_idx)]
-        sample_p = sample_p / sample_p.sum()
-
-        batch_info = []
-        if len(sample_idx) < optim_batch:
-            optim_batch = len(sample_idx)
-        batch_index = np.random.choice(
-            sample_idx, size=optim_batch, replace=False, p=sample_p
-        )
-        batch_info = [self.info[_] for _ in batch_index]
-
-        return batch_info
-
-
-def process_stitched_trajectories(origin_trj1, stitch_trj, origin_trj2):
-    """concatenate one origin_trj and the corresponding stitch_trj"""
-
-    keys = ["obs", "act", "rew", "next_obs", "dones"]
-    new_trj = {}
-    for k in keys:
-        assert k in origin_trj1, f"{k} not in origin_trj1"
-        assert k in origin_trj2, f"{k} not in origin_trj2"
-        assert k in stitch_trj, f"{k} not in stitch_trj"
-
-        new_trj[k] = np.concatenate(
-            [origin_trj1[k], stitch_trj[k], origin_trj2[k]], axis=0
-        )
-    new_trj["region_idx"] = stitch_trj["region_idx"]
-    return new_trj
 
 
 def main(**cfg):
@@ -795,6 +690,7 @@ def main(**cfg):
         dim=Config.dim,
         returns_condition=Config.returns_condition,
         device=Config.device,
+        ll=True,
     )
 
     diffusion_config = utils.Config(
@@ -878,54 +774,16 @@ def main(**cfg):
         data_buffer.insert_traj(info)
     data_buffer.finalize()
 
-    with open(f"./gym_v4/round1_stitch_{Config.dataset}_H40.pkl", "rb") as f:
-        stitched_data = pickle.load(f)
-    stitched_trjs = []
-    for i in range(len(stitched_data)):
-
-        stitch_trj = dict(
-            obs=stitched_data[i][7][1:],
-            act=stitched_data[i][8][1:],
-            rew=stitched_data[i][9][1:],
-            next_obs=stitched_data[i][10][1:],
-            dones=stitched_data[i][11][1:],
-            region_idx=stitched_data[i][12],
+    with torch.no_grad():
+        stitch(
+            Config,
+            data_buffer,
+            data_buffer,
+            dataset,
+            trainer,
+            dynamics_model,
+            env_dataset,
         )
-
-        traj2_idx = stitched_data[i][2]
-        traj2_segment_idx = stitched_data[i][3]
-        trj2 = env_dataset.get_full_info_traj(traj2_idx)
-        for k in ["obs", "act", "rew", "next_obs", "dones"]:
-            trj2[k] = trj2[k][traj2_segment_idx:]
-
-        traj1_idx = stitched_data[i][0]
-        traj1_segment_idx = stitched_data[i][1]
-        trj1 = env_dataset.get_full_info_traj(traj1_idx)
-        for k in ["obs", "act", "rew", "next_obs", "dones"]:
-            trj1[k] = trj1[k][
-                : traj1_segment_idx + Config.horizon
-            ]  # the last state in trj1 is the first state in stitch_trj
-
-        new_trj = process_stitched_trajectories(trj1, stitch_trj, trj2)
-        stitched_trjs.append(new_trj)
-
-    stitch_dataset = StitchDataset(stitched_trjs)
-    stitch_buffer = StitchBuffer(horizon=Config.horizon)
-    for i in range(stitch_dataset.num_traj):
-        info = stitch_dataset.get_full_info_traj(i)
-        stitch_buffer.insert_traj(info)
-    stitch_buffer.finalize()
-
-    stitch(
-        Config,
-        stitch_buffer,
-        data_buffer,
-        dataset,
-        trainer,
-        dynamics_model,
-        env_dataset,
-        stitch_dataset,
-    )
 
 
 if __name__ == "__main__":
