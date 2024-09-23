@@ -6,10 +6,12 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    dataset = "halfcheetah-medium-replay-v2"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-expert-v2/cl_h4"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/cl"
+    job_name = (
+        "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-expert-v2/cl_h4"
+    )
+    dataset = "halfcheetah-medium-expert-v2"
     test_ret = 0.85
     job_counter = 1
 
@@ -21,7 +23,7 @@ class Config(ParamsProto):
     number_optimum = 4000  # 2%
     top_k = 60000  # 30%
     save_img_dir = "/root/4_20_workspace/pictures"
-    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/halfcheetah-medium-replay-v2/mopo/seed_1_0826_170431-halfcheetah_medium_replay_v2_mopo/models/ite_dynamics_model"
+    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/halfcheetah-medium-expert-v2/mopo/seed_1_0826_170431-halfcheetah_medium_expert-v2_mopo/models/ite_dynamics_model"
     save_data_path = "/root/autodl-tmp/open_code/augmented_data"
     dreamer_similarity = 0.90
     stitch_L = 10
@@ -33,8 +35,8 @@ class Config(ParamsProto):
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 300.0  # Determined using rewards from the dataset
-    loader = "datasets.CondSequenceDataset"
+    returns_scale = 800.0  # Determined using rewards from the dataset
+    loader = "datasets.CondCLSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
     clip_denoised = True
@@ -47,10 +49,11 @@ class Config(ParamsProto):
     train_only_inv = False
     stitch = False
     task_data = True
-    jump = 1
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_halfcheetah-medium-replay-v2_H40-v2.pkl"
+    jump = None
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_halfcheetah-medium-expert-v2_H50-v1.pkl"
     data_file = None
     segment_return = False
+    jumps = [1, 4, 20]
 
     ## training
     n_steps_per_epoch = 10000
@@ -71,9 +74,9 @@ class Config(ParamsProto):
 
     # model
     model = "models.TemporalUnet"
-    diffusion = "models.GaussianInvDynDiffusion"
+    diffusion = "models.GaussianInvDynDiffusionCL"
     train_only_diffuser = False
-    horizon = 40
+    horizon = 101
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None
@@ -86,3 +89,4 @@ class Config(ParamsProto):
     condition_dropout = 0.25
     condition_guidance_w = 1.2
     renderer = "utils.MuJoCoRenderer"
+    level_dim = 8

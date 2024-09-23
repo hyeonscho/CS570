@@ -6,24 +6,26 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    dataset = "halfcheetah-medium-replay-v2"
-    test_ret = 0.85
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-expert-v2/100"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/segment_return"
+    job_name = (
+        "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-expert-v2/task/100"
+    )
+    dataset = "walker2d-medium-expert-v2"
+    test_ret = 1.0
     job_counter = 1
 
     # Stitching
     render_option = True
     render_freq = 50
     dream_len = 1
-    dynamics_deviate = 0.8
-    number_optimum = 4000  # 2%
-    top_k = 60000  # 30%
+    dynamics_deviate = 0.9
+    number_optimum = 20000  # 2%
+    top_k = 300000  # 30%
     save_img_dir = "/root/4_20_workspace/pictures"
-    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/halfcheetah-medium-replay-v2/mopo/seed_1_0826_170431-halfcheetah_medium_replay_v2_mopo/models/ite_dynamics_model"
+    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/walker2d-medium-expert-v2/mopo/seed_1_0826_170406-walker2d_medium_expert_v2_mopo/models/ite_dynamics_model"
     save_data_path = "/root/autodl-tmp/open_code/augmented_data"
-    dreamer_similarity = 0.90
+    dreamer_similarity = 0.97
     stitch_L = 10
     stitch_R = 40
     generate_limit = 2000000
@@ -33,7 +35,7 @@ class Config(ParamsProto):
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 300.0  # Determined using rewards from the dataset
+    returns_scale = 350.0  # Determined using rewards from the dataset
     loader = "datasets.CondSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
@@ -41,16 +43,16 @@ class Config(ParamsProto):
     use_padding = True
     include_returns = True
     discount = 0.99
-    max_path_length = 200
+    max_path_length = 1000
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
+    segment_return = True
     stitch = False
-    task_data = True
+    task_data = False
     jump = 1
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_halfcheetah-medium-replay-v2_H40-v2.pkl"
+    aug_data_file = None
     data_file = None
-    segment_return = False
 
     ## training
     n_steps_per_epoch = 10000
@@ -72,8 +74,8 @@ class Config(ParamsProto):
     # model
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
+    horizon = 100
     train_only_diffuser = False
-    horizon = 40
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

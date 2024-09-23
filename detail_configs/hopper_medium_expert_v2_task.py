@@ -6,34 +6,37 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2"
-    dataset = "halfcheetah-medium-replay-v2"
-    test_ret = 0.85
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-expert-v2/task/50"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/task"
+    job_name = (
+        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-expert-v2/task/50"
+    )
+    dataset = "hopper-medium-expert-v2"
+    test_ret = 0.5
     job_counter = 1
 
     # Stitching
     render_option = True
     render_freq = 50
     dream_len = 1
-    dynamics_deviate = 0.8
-    number_optimum = 4000  # 2%
-    top_k = 60000  # 30%
-    save_img_dir = "/root/4_20_workspace/pictures"
-    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/halfcheetah-medium-replay-v2/mopo/seed_1_0826_170431-halfcheetah_medium_replay_v2_mopo/models/ite_dynamics_model"
-    save_data_path = "/root/autodl-tmp/open_code/augmented_data"
-    dreamer_similarity = 0.90
+    dynamics_deviate = 1.5
+    number_optimum = 8000  # 2%
+    top_k = 120000  # 30%
+    save_img_dir = "/root/4_16_workspace/pictures"
+    dynamic_model_path = "/common/users/cc1547/projects/rainbow/diffstitch/dynamic/hopper-medium-expert-v2/mopo/seed_1_0830_164934-hopper_medium_expert_v2_mopo/models/ite_dynamics_model"
+    save_data_path = "/root/4_16_workspace/augmented_data"
+    dreamer_similarity = 0.80
     stitch_L = 10
     stitch_R = 40
     generate_limit = 2000000
     stitch_batch = 64
     sample_optim_batch = 512
     save_aug_freq = 5
+    std_coef = 6.0
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 300.0  # Determined using rewards from the dataset
+    returns_scale = 180.0  # Determined using rewards from the dataset
     loader = "datasets.CondSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
@@ -41,16 +44,17 @@ class Config(ParamsProto):
     use_padding = True
     include_returns = True
     discount = 0.99
-    max_path_length = 200
+    max_path_length = 50
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
+    segment_return = False
+    data_file = None
     stitch = False
     task_data = True
     jump = 1
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_halfcheetah-medium-replay-v2_H40-v2.pkl"
+    aug_data_file = None
     data_file = None
-    segment_return = False
 
     ## training
     n_steps_per_epoch = 10000
@@ -73,7 +77,7 @@ class Config(ParamsProto):
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = False
-    horizon = 40
+    horizon = 50
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

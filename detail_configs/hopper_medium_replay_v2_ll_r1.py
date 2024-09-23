@@ -6,11 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/ll40_r1"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/ll10_r1_run2"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = (
-        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/ll40_r1"
-    )
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/ll10_r1_run2"
     dataset = "hopper-medium-replay-v2"
     test_ret = 0.25
     job_counter = 1
@@ -32,10 +30,11 @@ class Config(ParamsProto):
     stitch_batch = 64
     sample_optim_batch = 512
     save_aug_freq = 5
+    segment_return = False
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 250.0  # Determined using rewards from the dataset
+    returns_scale = 200.0  # Determined using rewards from the dataset
     loader = "datasets.CondSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
@@ -51,8 +50,9 @@ class Config(ParamsProto):
     stitch = False
     task_data = True
     jump = 1
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_hopper-medium-replay-v2_H40-v1.pkl"
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_hopper-medium-replay-v2_H50-v1.pkl"
     data_file = None
+    jumps = []
 
     ## training
     n_steps_per_epoch = 10000
@@ -75,7 +75,7 @@ class Config(ParamsProto):
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = False
-    horizon = 40
+    horizon = 10
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

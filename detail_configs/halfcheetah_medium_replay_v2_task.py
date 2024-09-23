@@ -6,18 +6,18 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/task/40"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/task/50"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/task"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/task/40"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/task/50"
     dataset = "halfcheetah-medium-replay-v2"
-    test_ret = 0.85
+    test_ret = 1.1
     job_counter = 1
 
     # Stitching
     render_option = True
     render_freq = 50
     dream_len = 1
-    dynamics_deviate = 0.8
+    dynamics_deviate = 1.0
     number_optimum = 4000  # 2%
     top_k = 60000  # 30%
     save_img_dir = "/root/4_20_workspace/pictures"
@@ -30,6 +30,7 @@ class Config(ParamsProto):
     stitch_batch = 64
     sample_optim_batch = 512
     save_aug_freq = 5
+    std_coef = 3.0
 
     ## dataset
     termination_penalty = -100
@@ -41,10 +42,11 @@ class Config(ParamsProto):
     use_padding = True
     include_returns = True
     discount = 0.99
-    max_path_length = 40
+    max_path_length = 50
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
+    segment_return = False
     stitch = False
     task_data = True
     jump = 1
@@ -72,7 +74,7 @@ class Config(ParamsProto):
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = False
-    horizon = 40
+    horizon = 50
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None
