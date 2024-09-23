@@ -18,46 +18,47 @@ We mainly have two stage: stitching and long-horizon sequence modeling with HD.
 ### Train the low-level Diffuser
 ```
 cd scripts
-python train.py --config kitchen_partial_task
+python train.py --config walker2d_medium_v2_task
 ```
 
 ### Train Dynamic models 
 ```
     cd scripts/mopo 
-    python train.py --task kitchen-partial-v0
+    python train.py --task walker2d-medium-v2
+```
+
+### Evaluate the low-level Diffuser to search for a good `test_ret`, which will be used during stitching.
+```
+    cd scripts 
+    python diffstitch_gym_mujoco_eval.py --task walker2d_medium_v2_task
 ```
 
 ### Stitch to generate long trajectories:
 Currently the stitching is conducted sequentially, which means if we want to stitch 3 short trajectories together, we need stitch 2 first, and then stitch the resulted mediated long trajectories with a third short trajectorie, and so on.
 ```
-    python diffstitch_kitchen_clean.py
-    python diffstitch_kitchen_clean_round_later.py
-    python diffstitch_kitchen_clean_round_later_r3.py
+    python diffstitch_gym_mujoco_stitch_v3.py
+    python diffstitch_gym_mujoco_stitch_round2.py
 ```
 ### Post-process the stitched long tracjectories:
-See jupyter notebook `diffstitch_kitchen_post_process.ipynb`. We need to make the dataset format aligned with the d4rl dataset format.
+See jupyter notebook `diffstitch_gym_post_process-walker2d-me_invest.ipynb`. We need to make the dataset format aligned with the d4rl dataset format. Also see the episoidc return of the stitched data, to set the `reward_scale` value.
 
-### Train high-level planner:
+### Train level-conditionig planner:
 ```
 cd scripts
-python train.py --config kitchen_partial_hl_r3
+python train.py --config walker2d_medium_v2_cl
 ```
 
 ## Evaluation
 ```
 cd scripts
-python hl_diffstitch_kitchen_eval.py
+python cl_diffstitch_gym_eval_r1.py
 ```
 It also searches for a good conditioning testing return.
-To evaluate the flat stitching method:
-```
-cd scripts
-python diffstitch_kitchen_eval.py
-```
+
 
 ## Others
 Understanding the statistics of the dataset is benefitial for choosing the hyper-parameters, especially the `return_scale`, for training.
-The jupyter notebook `kitchen_data_investigate` is what I used for the Kitchen environment.
+The jupyter notebook `DMC_data_investigate` is what I used for the DMC environment.
 
 
 ### ERROR & BUGS
