@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import NamedTuple
 import numpy as np
 import torch
 import pdb
@@ -8,11 +9,41 @@ from .d4rl import load_environment, sequence_dataset
 from .normalization import DatasetNormalizer
 from .buffer import ReplayBuffer
 
-RewardBatch = namedtuple("Batch", "trajectories conditions returns")
-Batch = namedtuple("Batch", "trajectories conditions")
-ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
-LevelBatch = namedtuple("LevelBatch", "trajectories conditions levels")
-LevelRewardBatch = namedtuple("LevelBatch", "trajectories conditions levels returns")
+# RewardBatch = namedtuple("Batch", "trajectories conditions returns")
+# Batch = namedtuple("Batch", "trajectories conditions")
+# ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
+# LevelBatch = namedtuple("LevelBatch", "trajectories conditions levels")
+# LevelRewardBatch = namedtuple("LevelBatch", "trajectories conditions levels returns")
+
+
+class RewardBatch(NamedTuple):
+    trajectories: np.float32
+    conditions: np.float32
+    returns: np.float32
+
+
+class Batch(NamedTuple):
+    trajectories: np.float32
+    conditions: np.float32
+
+
+class ValueBatch(NamedTuple):
+    trajectories: np.float32
+    conditions: np.float32
+    values: np.float32
+
+
+class LevelBatch(NamedTuple):
+    trajectories: np.float32
+    conditions: np.float32
+    levels: np.float32
+
+
+class LevelRewardBatch(NamedTuple):
+    trajectories: np.float32
+    conditions: np.float32
+    levels: np.float32
+    returns: np.float32
 
 
 class SequenceDataset(torch.utils.data.Dataset):
@@ -290,6 +321,134 @@ class CondSequenceDataset(torch.utils.data.Dataset):
 
 
 class CondCLSequenceDataset(CondSequenceDataset):
+    def __init__(
+        self,
+        env="hopper-medium-expert-v2",
+        horizon=64,
+        normalizer="LimitsNormalizer",
+        preprocess_fns=[],
+        max_path_length=1000,
+        max_n_episodes=80000,
+        termination_penalty=0,
+        use_padding=True,
+        discount=0.99,
+        returns_scale=1000,
+        include_returns=False,
+        data_file=None,
+        stitch=False,
+        task_data=False,
+        jump=1,
+        aug_data_file=None,
+        segment_return=False,
+        jumps=[],
+    ):
+        super().__init__(
+            env,
+            horizon,
+            normalizer,
+            preprocess_fns,
+            max_path_length,
+            max_n_episodes,
+            termination_penalty,
+            use_padding,
+            discount,
+            returns_scale,
+            include_returns,
+            data_file,
+            stitch,
+            task_data,
+            jump,
+            aug_data_file,
+            segment_return,
+            jumps,
+        )
+        horizons = [
+            1 + j if 1 + j > self.segmt_len else self.segmt_len for j in jumps[1:]
+        ]
+        horizons = horizons + [horizon]
+        # self.indices = [
+        #     self.make_indices(self.fields.path_lengths, h) for h in horizons
+        # ]
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, idx, eps=0.0001):
+        random_level = np.random.randint(0, len(self.jumps))
+
+        # indx_len = len(self.indices[random_level])
+        # idx = idx % indx_len
+        # path_ind, start, end = self.indices[random_level][idx]
+
+        path_ind, start, end = self.indices[idx]
+        jump = self.jumps[random_level]
+        horizon = self.segmt_len
+
+        observations = self.fields.normed_observations[path_ind, start:end][::jump]
+        actions = self.fields.normed_actions[path_ind, start:end][::jump]
+
+        random_idx = 0
+        if len(observations) > horizon:
+            random_idx = np.random.randint(0, len(observations) - horizon)
+            observations = observations[random_idx : random_idx + horizon]
+            actions = actions[random_idx : random_idx + horizon]
+
+        levels = np.eye(len(self.jumps), dtype=observations.dtype)[random_level]
+        levels = np.repeat(levels[None], horizon, axis=0)
+
+        traj_dim = self.action_dim + self.observation_dim + self.level_dim
+
+        t_step = 1
+        conditions = np.ones((horizon, self.observation_dim * 2)).astype(np.float32)
+        conditions[:, self.observation_dim :] = 0
+        conditions[:t_step, : self.observation_dim] = 0
+        conditions[:t_step, self.observation_dim :] = observations[:t_step]
+
+        import random
+
+        if random_level == 0 and self.jumps[1] + 1 < horizon:
+            end_index = self.jumps[1]
+        else:
+            end_index = horizon
+
+        start_index = random.randint(1, end_index)
+        end_index = random.randint(start_index, end_index)
+
+        if random_level == 0 and self.jumps[1] + 1 < horizon:
+            conditions[start_index : end_index + 1, : self.observation_dim] = 0
+            conditions[start_index : end_index + 1, self.observation_dim :] = (
+                observations[start_index : end_index + 1]
+            )
+            conditions[self.jumps[1] :, : self.observation_dim] = 0
+            conditions[self.jumps[1] :, self.observation_dim :] = observations[
+                self.jumps[1] : self.jumps[1] + 1
+            ]
+        else:
+            # [0, t_step] and [start_index, end_index] is masked
+            conditions[start_index : end_index + 1, : self.observation_dim] = 0
+            conditions[start_index : end_index + 1, self.observation_dim :] = (
+                observations[start_index : end_index + 1]
+            )
+        trajectories = np.concatenate(
+            [actions, observations], axis=-1
+        )  # shape is (100, 14)
+
+        if self.include_returns:
+            if self.segment_return:
+                rewards = self.fields.rewards[path_ind, start:end]
+            else:
+                rewards = self.fields.rewards[path_ind, start + random_idx :]
+            discounts = self.discounts[: len(rewards)]
+            returns = (discounts * rewards).sum()
+            returns = np.array([returns / self.returns_scale], dtype=np.float32)
+            batch = LevelRewardBatch(trajectories, conditions, levels, returns)
+        else:
+            batch = LevelBatch(trajectories, conditions, levels)
+
+        return batch
+
+
+class CondCLWithShortSequenceDataset(CondSequenceDataset):
     def __init__(
         self,
         env="hopper-medium-expert-v2",
