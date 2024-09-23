@@ -107,4 +107,7 @@ class ReplayBuffer:
         for key in self.keys + ["path_lengths"]:
             self._dict[key] = self._dict[key][: self._count]
         self._add_attributes()
-        print(f"[ datasets/buffer ] Finalized replay buffer | {self._count} episodes")
+        avg_path_len = np.mean(self._dict["path_lengths"][: self._count])
+        print(
+            f"[ datasets/buffer ] Finalized replay buffer | {self._count} episodes  | Avg path lengths {avg_path_len:.2f}"
+        )
