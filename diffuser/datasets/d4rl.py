@@ -100,7 +100,9 @@ def get_dataset(env, data_path=None):
     return dataset
 
 
-def sequence_dataset(env, preprocess_fn, data_file=None, task_data=False):
+def sequence_dataset(
+    env, preprocess_fn, data_file=None, task_data=False, task_len=None
+):
     """
     Returns an iterator through trajectories.
     Args:
@@ -150,7 +152,10 @@ def sequence_dataset(env, preprocess_fn, data_file=None, task_data=False):
                 episode_data = process_kitchen_episode(episode_data)
             if task_data:
                 if "kitchen" in env.name and data_file is None:
-                    tasks = kitchen_task_dataset(episode_data)
+                    if task_len is None:
+                        tasks = kitchen_task_dataset(episode_data)
+                    else:
+                        tasks = kitchen_subseq_dataset(episode_data, task_len=task_len)
                 else:
                     tasks = gym_task_data(episode_data)
                 for task in tasks:
@@ -165,6 +170,28 @@ def sequence_dataset(env, preprocess_fn, data_file=None, task_data=False):
 # -----------------------------------------------------------------------------#
 # -------------------------------- maze2d fixes -------------------------------#
 # -----------------------------------------------------------------------------#
+
+
+def kitchen_subseq_dataset(seq_dataset, task_len):
+
+    tasks = []
+
+    task_data = collections.defaultdict(list)
+    rewards = seq_dataset["rewards"]
+
+    l = rewards.shape[0]
+    for i in range(l):
+
+        for k in seq_dataset:
+            task_data[k].append(seq_dataset[k][i])
+
+        if (i + 1) % task_len == 0:
+            for k in task_data:
+                task_data[k] = np.array(task_data[k])
+            tasks.append(task_data)
+            task_data = collections.defaultdict(list)
+
+    return tasks
 
 
 def kitchen_task_dataset(seq_dataset):

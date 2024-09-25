@@ -160,7 +160,7 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         normalizer="LimitsNormalizer",
         preprocess_fns=[],
         max_path_length=1000,
-        max_n_episodes=80000,
+        max_n_episodes=800000,
         termination_penalty=0,
         use_padding=True,
         discount=0.99,
@@ -173,6 +173,7 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         aug_data_file=None,
         segment_return=False,
         jumps=[],
+        task_len=None,
     ):
         env_name = env
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
@@ -212,7 +213,11 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         fields = ReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
         if not stitch:
             itr = sequence_dataset(
-                env, self.preprocess_fn, data_file=data_file, task_data=task_data
+                env,
+                self.preprocess_fn,
+                data_file=data_file,
+                task_data=task_data,
+                task_len=task_len,
             )
 
             for i, episode in enumerate(itr):
@@ -305,9 +310,7 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         if self.include_returns:
             if self.segment_return:
                 path_len = self.fields.path_lengths[path_ind]
-                rewards = self.fields.rewards[
-                    path_ind, start : min(path_len, start + 100)
-                ]
+                rewards = self.fields.rewards[path_ind, start:end]
             else:
                 rewards = self.fields.rewards[path_ind, start:]
             discounts = self.discounts[: len(rewards)]
@@ -341,6 +344,7 @@ class CondCLSequenceDataset(CondSequenceDataset):
         aug_data_file=None,
         segment_return=False,
         jumps=[],
+        task_len=None,
     ):
         super().__init__(
             env,
@@ -374,6 +378,7 @@ class CondCLSequenceDataset(CondSequenceDataset):
         return len(self.indices)
 
     def __getitem__(self, idx, eps=0.0001):
+        num_levels = len(self.jumps)
         random_level = np.random.randint(0, len(self.jumps))
 
         # indx_len = len(self.indices[random_level])
@@ -406,22 +411,26 @@ class CondCLSequenceDataset(CondSequenceDataset):
 
         import random
 
-        if random_level == 0 and self.jumps[1] + 1 < horizon:
-            end_index = self.jumps[1]
-        else:
-            end_index = horizon
+        # if random_level == 0 and self.jumps[1] + 1 < horizon:
+        end_index = horizon
+        if random_level < num_levels - 1:
+            level_horizon = int(
+                np.ceil((self.jumps[random_level + 1] + 1) / self.jumps[random_level])
+            )
+            if level_horizon < horizon:
+                end_index = level_horizon
 
         start_index = random.randint(1, end_index)
         end_index = random.randint(start_index, end_index)
 
-        if random_level == 0 and self.jumps[1] + 1 < horizon:
+        if random_level < num_levels - 1 and level_horizon < horizon:
             conditions[start_index : end_index + 1, : self.observation_dim] = 0
             conditions[start_index : end_index + 1, self.observation_dim :] = (
                 observations[start_index : end_index + 1]
             )
-            conditions[self.jumps[1] :, : self.observation_dim] = 0
-            conditions[self.jumps[1] :, self.observation_dim :] = observations[
-                self.jumps[1] : self.jumps[1] + 1
+            conditions[level_horizon:, : self.observation_dim] = 0
+            conditions[level_horizon:, self.observation_dim :] = observations[
+                level_horizon : level_horizon + 1
             ]
         else:
             # [0, t_step] and [start_index, end_index] is masked
