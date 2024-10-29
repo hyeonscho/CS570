@@ -6,11 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-v2/cl_h8"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-v2/cl_h8_run4"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/cl"
-    job_name = (
-        "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-v2/cl_h8"
-    )
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-v2/cl_h8_run4"
     dataset = "walker2d-medium-replay-v2"
     test_ret = 0.85
     job_counter = 1
@@ -54,6 +52,8 @@ class Config(ParamsProto):
     data_file = None
     segment_return = False
     jumps = [1, 8]
+    task_len = None
+    resume_step = 0
 
     ## training
     n_steps_per_epoch = 10000

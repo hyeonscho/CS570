@@ -6,9 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "default_inv/predict_epsilon_100_1000000.0/dropout_0.25/kitchen/60/run2"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/100"
+    prefix = "default_inv/predict_epsilon_100_1000000.0/dropout_0.25/kithcen_parital"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/"
     dataset = "kitchen-partial-v0"
     test_ret = 0.95
     job_counter = 1
@@ -40,13 +40,18 @@ class Config(ParamsProto):
     clip_denoised = True
     use_padding = True
     include_returns = True
-    discount = 0.99
+    discount = 0.997
     max_path_length = 280
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
     data_file = None
+    task_data = False
+    aug_data_file = None
     stitch = False
+    jump = 1
+    jumps = []
+    segment_return = False
 
     ## training
     n_steps_per_epoch = 10000
@@ -68,7 +73,8 @@ class Config(ParamsProto):
     # model
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
-    horizon = 60
+    train_only_diffuser = False
+    horizon = 56
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

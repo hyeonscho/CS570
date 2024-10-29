@@ -6,10 +6,10 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/task/40"
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/task/50"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/task"
     job_name = (
-        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/task/40"
+        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/task/50"
     )
     dataset = "hopper-medium-replay-v2"
     test_ret = 0.25
@@ -43,7 +43,7 @@ class Config(ParamsProto):
     use_padding = True
     include_returns = True
     discount = 0.99
-    max_path_length = 40
+    max_path_length = 50
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
@@ -53,6 +53,7 @@ class Config(ParamsProto):
     jump = 1
     aug_data_file = None
     data_file = None
+    jumps = []
 
     ## training
     n_steps_per_epoch = 10000
@@ -75,7 +76,7 @@ class Config(ParamsProto):
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = False
-    horizon = 40
+    horizon = 50
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

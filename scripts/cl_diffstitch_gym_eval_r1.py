@@ -36,7 +36,6 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
     num_eval = len(env_list)
     num_level = len(dataset.jumps)
     jumps = np.array(dataset.jumps)
-    r_ratio = np.append(jumps[:-1] / jumps[1:], 1.0)
 
     dones = [False for _ in range(num_eval)]
     episode_rewards = [0 for _ in range(num_eval)]
@@ -58,13 +57,14 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
             cond[:, :, obs_dim:] = 0
             cond[:, :1, :obs_dim] = 0
             cond[:, :1, obs_dim:] = state_normed
-            if l < num_level - 1 and l > 0:
-                cond[:, -1:, :obs_dim] = 0
-                cond[:, -1:, obs_dim:] = samples_np[:, 1:2]
-
-            if l == 0:
-                cond[:, jumps[1] :, :obs_dim] = 0
-                cond[:, jumps[1] :, obs_dim:] = samples_np[:, 1:2]
+            if l < num_level - 1:
+                level_horizon = int(np.ceil((jumps[l + 1] + 1) / jumps[l]))
+                if level_horizon < horizon:
+                    cond[:, level_horizon - 1 :, :obs_dim] = 0
+                    cond[:, level_horizon - 1 :, obs_dim:] = samples_np[:, 1:2]
+                else:
+                    cond[:, -1:, :obs_dim] = 0
+                    cond[:, -1:, obs_dim:] = samples_np[:, 1:2]
 
             conditions = torch.tensor(cond).to(device)
 
@@ -132,7 +132,7 @@ def main(**deps):
         returns_scale=Config.returns_scale,
         data_file=Config.data_file,
         stitch=Config.stitch,
-        task_data=True,
+        task_data=Config.task_data,
         aug_data_file=Config.aug_data_file,
         jump=Config.jump,
         segment_return=Config.segment_return,
@@ -208,8 +208,8 @@ def main(**deps):
     trainer = trainer_config(diffusion, dataset, renderer)
     loadpath = os.path.join(Config.bucket, Config.dataset, Config.prefix, "checkpoint")
 
-    loadpath = os.path.join(loadpath, f"state_400000.pt")
-    print(f"loaded model form {loadpath}")
+    loadpath = os.path.join(loadpath, f"state_1000000.pt")
+    print(f"load model from {loadpath}")
 
     state_dict = torch.load(loadpath, map_location=Config.device)
     trainer.step = state_dict["step"]
@@ -219,6 +219,7 @@ def main(**deps):
     assert trainer.ema_model.condition_guidance_w == Config.condition_guidance_w
 
     test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.05]
+    # test_ret = [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]
     # test_ret = [0.9, 0.95]
     total_rewards = []
     total_num_eval = 15
@@ -248,7 +249,7 @@ def main(**deps):
         Config.dataset,
         Config.prefix,
         "checkpoint",
-        f"evaluation.pkl",
+        f"evaluation_800000.pkl",
     )
     with open(save_path, "wb") as f:
         pickle.dump(total_rewards, f)

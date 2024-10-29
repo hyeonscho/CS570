@@ -6,10 +6,10 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/cl_h4"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/cl_h4_run3"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/cl"
     job_name = (
-        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/cl_h4"
+        "predict_epsilon_100_1000000.0/dropout_0.25/hopper-medium-replay-v2/cl_h4_run3"
     )
     dataset = "hopper-medium-replay-v2"
     test_ret = 0.85
@@ -35,7 +35,7 @@ class Config(ParamsProto):
 
     ## dataset
     termination_penalty = -100
-    returns_scale = 250.0  # Determined using rewards from the dataset
+    returns_scale = 300.0  # Determined using rewards from the dataset
     loader = "datasets.CondCLSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
@@ -54,6 +54,7 @@ class Config(ParamsProto):
     data_file = None
     segment_return = False
     jumps = [1, 4, 20]
+    task_len = None
 
     ## training
     n_steps_per_epoch = 10000

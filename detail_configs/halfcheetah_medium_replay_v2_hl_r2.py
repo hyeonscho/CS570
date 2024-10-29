@@ -6,9 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r2_run2"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r2"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r2_run2"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r2"
     dataset = "halfcheetah-medium-replay-v2"
     test_ret = 0.85
     job_counter = 1
@@ -48,10 +48,9 @@ class Config(ParamsProto):
     stitch = False
     task_data = True
     jump = 10
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_halfcheetah-medium-replay-v2_H40-v2.pkl"
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round2_stitch_halfcheetah-medium-replay-v2_H40-v1.pkl"
     data_file = None
-    ll_loadpath = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl/halfcheetah-medium-replay-v2/diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2_run2/checkpoint"
-    segment_return = False
+    ll_loadpath = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl/halfcheetah-medium-replay-v2/diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r2/checkpoint"
 
     ## training
     n_steps_per_epoch = 10000

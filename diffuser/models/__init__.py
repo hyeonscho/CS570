@@ -1,2 +1,7 @@
-from .temporal import TemporalUnet, TemporalValue, MLPnet
-from .diffusion import GaussianDiffusion, ActionGaussianDiffusion, GaussianInvDynDiffusion, GaussianInvDynDiffusionCL
+from .temporal import TemporalUnet, TemporalValue, MLPnet, TemporalHLUnet
+from .diffusion import (
+    GaussianDiffusion,
+    ActionGaussianDiffusion,
+    GaussianInvDynDiffusion,
+    GaussianInvDynDiffusionCL,
+)

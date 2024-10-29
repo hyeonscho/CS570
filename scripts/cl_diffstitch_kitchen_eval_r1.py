@@ -33,6 +33,7 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
     horizon = dataset.segmt_len
     device = Config.device
     obs_dim = dataset.observation_dim
+    trans_dim = trainer.model.observation_dim
     num_eval = len(env_list)
     num_level = len(dataset.jumps)
     jumps = np.array(dataset.jumps)
@@ -64,18 +65,24 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
             levels = to_device(to_torch(np.tile(levels, (num_eval, horizon, 1))))
 
             # returns = returns * r_ratio[l]
-            cond = np.ones(shape=(num_eval, horizon, 2 * obs_dim))
-            cond[:, :, obs_dim:] = 0
+            cond = np.ones(shape=(num_eval, horizon, 2 * trans_dim))
+            cond[:, :, trans_dim:] = 0
             cond[:, :1, :obs_dim] = 0
-            cond[:, :1, obs_dim:] = state_normed
+            cond[:, :1, trans_dim : trans_dim + obs_dim] = state_normed
             if l < num_level - 1:
                 level_horizon = int(np.ceil((jumps[l + 1] + 1) / jumps[l]))
                 if level_horizon < horizon:
-                    cond[:, level_horizon - 1 :, :obs_dim] = 0
-                    cond[:, level_horizon - 1 :, obs_dim:] = samples_np[:, 1:2]
+                    cond[:, level_horizon - 1 : level_horizon, :obs_dim] = 0
+                    cond[
+                        :,
+                        level_horizon - 1 : level_horizon,
+                        trans_dim : trans_dim + obs_dim,
+                    ] = samples_np[:, 1:2, :obs_dim]
                 else:
                     cond[:, -1:, :obs_dim] = 0
-                    cond[:, -1:, obs_dim:] = samples_np[:, 1:2]
+                    cond[:, -1:, trainer : trans_dim + obs_dim] = samples_np[
+                        :, 1:2, :obs_dim
+                    ]
 
             conditions = torch.tensor(cond).to(device)
 
@@ -84,7 +91,7 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
             )  # shape is [1, 100, 11]
             samples_np = to_np(samples)
 
-        obs_comb = torch.cat([samples[:, 0, :], samples[:, 1, :]], dim=-1)
+        obs_comb = torch.cat([samples[:, 0, :obs_dim], samples[:, 1, :obs_dim]], dim=-1)
         obs_comb = obs_comb.reshape(-1, 2 * obs_dim)
         action = trainer.ema_model.inv_model(obs_comb)
 
@@ -150,6 +157,8 @@ def main(**deps):
         segment_return=Config.segment_return,
         jumps=Config.jumps,
         task_len=Config.task_len,
+        act_pad=Config.act_pad,
+        cum_rew=Config.cum_rew,
     )
 
     dataset = dataset_config()
@@ -163,25 +172,35 @@ def main(**deps):
     action_dim = dataset.action_dim
     transition_dim = observation_dim
 
+    num_level = len(Config.jumps)
+    if Config.level_dim:
+        level_dim = Config.level_dim
+    else:
+        level_dim = num_level
+
+    if Config.act_pad:
+        transition_dim = observation_dim + action_dim
+
     model_config = utils.Config(
         Config.model,
         savepath="model_config.pkl",
         horizon=dataset.segmt_len,
-        transition_dim=transition_dim + Config.level_dim,
+        transition_dim=transition_dim + level_dim,
         cond_dim=observation_dim,
         dim_mults=Config.dim_mults,
         dim=Config.dim,
         returns_condition=Config.returns_condition,
         device=Config.device,
         ll=True,
-        level_dim=Config.level_dim,
+        level_dim=level_dim,
+        level_condition=Config.level_condition,
     )
 
     diffusion_config = utils.Config(
         Config.diffusion,
         savepath="diffusion_config.pkl",
         horizon=dataset.segmt_len,
-        observation_dim=observation_dim,
+        observation_dim=transition_dim,
         action_dim=action_dim,
         n_timesteps=Config.n_diffusion_steps,
         loss_type=Config.loss_type,
@@ -197,6 +216,8 @@ def main(**deps):
         condition_guidance_w=Config.condition_guidance_w,
         level_dim=Config.level_dim,
         num_level=len(Config.jumps),
+        level_condition=Config.level_condition,
+        act_pad=Config.act_pad,
     )
 
     trainer_config = utils.Config(
@@ -222,6 +243,7 @@ def main(**deps):
     loadpath = os.path.join(Config.bucket, Config.dataset, Config.prefix, "checkpoint")
 
     loadpath = os.path.join(loadpath, f"state_1000000.pt")
+    print(f"load model from: {loadpath}")
 
     state_dict = torch.load(loadpath, map_location=Config.device)
     trainer.step = state_dict["step"]
@@ -229,12 +251,25 @@ def main(**deps):
     trainer.ema_model.load_state_dict(state_dict["ema"])
 
     assert trainer.ema_model.condition_guidance_w == Config.condition_guidance_w
-    test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.05]
+    test_ret = [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+        1.10,
+        1.2,
+    ]
     # test_ret = [0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
     total_rewards = []
     comp_tasks = []
-    total_num_eval = 30
-    num_eval = 10  # more than 15 instance will raise error
+    total_num_eval = 45
+    num_eval = 15  # more than 15 instance will raise error
     seeds = [0, 1, 2]
     num_iter = total_num_eval // num_eval
     env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
@@ -253,6 +288,7 @@ def main(**deps):
 
         iter_rewards = np.concatenate(iter_rewards)
         total_rewards.append(iter_rewards)
+        comp_tasks.append(iter_comp_t)
     total_rewards = np.array(total_rewards)
     [env.close() for env in env_list]
 

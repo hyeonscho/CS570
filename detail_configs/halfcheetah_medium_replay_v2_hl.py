@@ -6,9 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl100_r1_run2"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r1"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl100_r1_run2"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/hl80_r1"
     dataset = "halfcheetah-medium-replay-v2"
     test_ret = 0.85
     job_counter = 1
@@ -30,7 +30,7 @@ class Config(ParamsProto):
     stitch_batch = 64
     sample_optim_batch = 512
     save_aug_freq = 5
-    ll_loadpath = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl/halfcheetah-medium-replay-v2/diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll10_r1_run2/checkpoint"
+    ll_loadpath = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/hl/halfcheetah-medium-replay-v2/diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/ll40_r1/checkpoint"
 
     ## dataset
     termination_penalty = -100
@@ -48,11 +48,9 @@ class Config(ParamsProto):
     train_only_inv = False
     stitch = False
     task_data = True
-    jump = 9
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_halfcheetah-medium-replay-v2_H50-v1.pkl"
+    jump = 10
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_halfcheetah-medium-replay-v2_H40-v1.pkl"
     data_file = None
-    segment_return = False
-    jumps = []
 
     ## training
     n_steps_per_epoch = 10000
@@ -75,7 +73,7 @@ class Config(ParamsProto):
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = True
-    horizon = 100
+    horizon = 80
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None

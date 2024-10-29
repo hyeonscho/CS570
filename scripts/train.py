@@ -61,6 +61,9 @@ def main(**deps):
         jump=Config.jump,
         segment_return=Config.segment_return,
         jumps=Config.jumps,
+        task_len=Config.task_len,
+        act_pad=Config.act_pad,
+        cum_rew=Config.cum_rew,
     )
 
     render_config = utils.Config(
@@ -80,6 +83,9 @@ def main(**deps):
     # ------------------------------ model & trainer ------------------------------#
     # -----------------------------------------------------------------------------#
     if Config.diffusion == "models.GaussianInvDynDiffusion":
+        if Config.act_pad:
+            jump = Config.jump
+            observation_dim = observation_dim + jump * action_dim
         model_config = utils.Config(
             Config.model,
             savepath="model_config.pkl",
@@ -115,13 +121,23 @@ def main(**deps):
             returns_condition=Config.returns_condition,
             condition_guidance_w=Config.condition_guidance_w,
             device=Config.device,
+            act_pad=Config.act_pad,
         )
     elif Config.diffusion == "models.GaussianInvDynDiffusionCL":
+        num_level = len(Config.jumps)
+        if Config.level_dim:
+            level_dim = Config.level_dim
+        else:
+            level_dim = num_level
+
+        if Config.act_pad:
+            jump = Config.jump
+            observation_dim = observation_dim + action_dim
         model_config = utils.Config(
             Config.model,
             savepath="model_config.pkl",
             horizon=dataset.segmt_len,
-            transition_dim=observation_dim + Config.level_dim,
+            transition_dim=observation_dim + level_dim,
             cond_dim=observation_dim,
             dim_mults=Config.dim_mults,
             returns_condition=Config.returns_condition,
@@ -130,7 +146,8 @@ def main(**deps):
             calc_energy=Config.calc_energy,
             device=Config.device,
             ll=True,
-            level_dim=Config.level_dim,
+            level_dim=level_dim,
+            level_condition=Config.level_condition,
         )
         diffusion_config = utils.Config(
             Config.diffusion,
@@ -155,6 +172,8 @@ def main(**deps):
             device=Config.device,
             level_dim=Config.level_dim,
             num_level=len(Config.jumps),
+            level_condition=Config.level_condition,
+            act_pad=Config.act_pad,
         )
     else:
         model_config = utils.Config(
@@ -219,6 +238,17 @@ def main(**deps):
     diffusion = diffusion_config(model)
 
     trainer = trainer_config(diffusion, dataset, renderer)
+    start_epoch = 0
+    if Config.resume_step != 0:
+        resume_path = os.path.join(
+            Config.bucket, Config.dataset, Config.prefix, "checkpoint"
+        )
+        resume_ckpt = os.path.join(resume_path, f"state_{Config.resume_step}.pt")
+        state_dict = torch.load(resume_ckpt, map_location=Config.device)
+        trainer.step = state_dict["step"]
+        trainer.model.load_state_dict(state_dict["model"])
+        trainer.ema_model.load_state_dict(state_dict["ema"])
+        start_epoch = trainer.step // Config.n_steps_per_epoch
 
     # -----------------------------------------------------------------------------#
     # ------------------------ test forward & backward pass -----------------------#
@@ -235,7 +265,7 @@ def main(**deps):
 
     n_epochs = int(Config.n_train_steps // Config.n_steps_per_epoch)
 
-    for i in tqdm(range(n_epochs + 1)):
+    for i in tqdm(range(start_epoch, n_epochs + 1)):
         logger.print(f"Epoch {i} / {n_epochs} | {logger.prefix}")
         trainer.train(n_train_steps=Config.n_steps_per_epoch)
 

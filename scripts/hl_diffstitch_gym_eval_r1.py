@@ -30,9 +30,9 @@ def import_config(config_name):
 
 def evaluate(Config, test_r, env_list, hl_dataset, ll_dataset, hl_trainer, ll_trainer):
 
-    hl_horizon = int(np.ceil(Config.horizon / Config.jump))
+    hl_horizon = Config.horizon // Config.jump
     jump = Config.jump
-    ll_horizon = 10
+    ll_horizon = 40
     device = Config.device
     obs_dim = hl_dataset.observation_dim
     num_eval = len(env_list)
@@ -63,8 +63,7 @@ def evaluate(Config, test_r, env_list, hl_dataset, ll_dataset, hl_trainer, ll_tr
         ll_cond = np.ones(shape=(num_eval, ll_horizon, 2 * obs_dim))
         ll_cond[:, :, obs_dim:] = 0
         ll_cond[:, ::jump, :obs_dim] = 0
-        num_subgoal = ll_cond[:, ::jump].shape[1]
-        ll_cond[:, ::jump, obs_dim:] = hl_samples[:, :num_subgoal]
+        ll_cond[:, ::jump, obs_dim:] = hl_samples[:, : int(np.ceil(ll_horizon / jump))]
         ll_conditions = torch.tensor(ll_cond).to(device)
 
         ll_samples = ll_trainer.ema_model.conditional_sample(
@@ -130,9 +129,12 @@ def main(**deps):
         returns_scale=Config.returns_scale,
         data_file=Config.data_file,
         stitch=Config.stitch,
-        task_data=True,
+        task_data=Config.task_data,
         aug_data_file=Config.aug_data_file,
         jump=1,
+        task_len=Config.task_len,
+        segment_return=Config.segment_return,
+        jumps=Config.jumps,
     )
 
     hl_dataset_config = utils.Config(
@@ -151,6 +153,8 @@ def main(**deps):
         task_data=Config.task_data,
         aug_data_file=Config.aug_data_file,
         jump=Config.jump,
+        segment_return=Config.segment_return,
+        jumps=Config.jumps,
     )
 
     ll_dataset = ll_dataset_config()
@@ -168,20 +172,19 @@ def main(**deps):
     hl_model_config = utils.Config(
         Config.model,
         savepath="model_config.pkl",
-        horizon=int(np.ceil(Config.horizon / Config.jump)),
+        horizon=Config.horizon,
         transition_dim=transition_dim,
         cond_dim=observation_dim,
         dim_mults=Config.dim_mults,
         dim=Config.dim,
         returns_condition=Config.returns_condition,
         device=Config.device,
-        ll=True,
     )
 
     ll_model_config = utils.Config(
         Config.model,
         savepath="model_config.pkl",
-        horizon=10,
+        horizon=Config.horizon,
         transition_dim=transition_dim,
         cond_dim=observation_dim,
         dim_mults=Config.dim_mults,
@@ -194,7 +197,7 @@ def main(**deps):
     hl_diffusion_config = utils.Config(
         Config.diffusion,
         savepath="diffusion_config.pkl",
-        horizon=int(np.ceil(Config.horizon / Config.jump)),
+        horizon=Config.horizon // Config.jump,
         observation_dim=observation_dim,
         action_dim=action_dim,
         n_timesteps=Config.n_diffusion_steps,
@@ -214,7 +217,7 @@ def main(**deps):
     ll_diffusion_config = utils.Config(
         Config.diffusion,
         savepath="diffusion_config.pkl",
-        horizon=10,
+        horizon=Config.jump + 1,
         observation_dim=observation_dim,
         action_dim=action_dim,
         n_timesteps=Config.n_diffusion_steps,
@@ -259,7 +262,6 @@ def main(**deps):
     ll_trainer.step = state_dict["step"]
     ll_trainer.model.load_state_dict(state_dict["model"])
     ll_trainer.ema_model.load_state_dict(state_dict["ema"])
-    print(f"loaded ll weights from {ll_loadpath}")
 
     hl_model = hl_model_config()
     hl_diffusion = hl_diffusion_config(hl_model)
@@ -269,7 +271,6 @@ def main(**deps):
     )
 
     hl_loadpath = os.path.join(hl_loadpath, f"state_1000000.pt")
-    print(f"loaded hl weights from {hl_loadpath}")
 
     state_dict = torch.load(hl_loadpath, map_location=Config.device)
     hl_trainer.step = state_dict["step"]
@@ -279,32 +280,40 @@ def main(**deps):
     assert hl_trainer.ema_model.condition_guidance_w == Config.condition_guidance_w
 
     test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.05]
-    # test_ret = [0.9, 0.95]
+    # test_ret = [0.75, 0.8, 0.85]
     total_rewards = []
-    total_num_eval = 15
-    num_eval = 15  # more than 15 instance will raise error
+    comp_tasks = []
+    total_num_eval = 30
+    num_eval = 10  # more than 15 instance will raise error
+    seeds = [0, 1, 2]
     num_iter = total_num_eval // num_eval
     env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
     for test_r in test_ret:
         iter_rewards = []
-        for _ in range(num_iter):
-            iter_rewards.append(
-                evaluate(
-                    Config,
-                    test_r,
-                    env_list,
-                    hl_dataset,
-                    ll_dataset,
-                    hl_trainer,
-                    ll_trainer,
-                )
+        iter_comp_t = []
+        for i in range(num_iter):
+
+            seed = seeds[i]
+            utils.set_seed(seed)
+            random.seed(seed)
+
+            total_r, comp_t = evaluate(
+                Config,
+                test_r,
+                env_list,
+                hl_dataset,
+                ll_dataset,
+                hl_trainer,
+                ll_trainer,
             )
+            iter_rewards.append(total_r)
+            iter_comp_t += comp_t
 
         iter_rewards = np.concatenate(iter_rewards)
         total_rewards.append(iter_rewards)
+        comp_tasks.append(iter_comp_t)
     total_rewards = np.array(total_rewards)
     [env.close() for env in env_list]
-
     save_path = os.path.join(
         Config.bucket,
         Config.dataset,
@@ -312,8 +321,19 @@ def main(**deps):
         "checkpoint",
         f"evaluation.pkl",
     )
+
     with open(save_path, "wb") as f:
         pickle.dump(total_rewards, f)
+
+    task_save_path = os.path.join(
+        Config.bucket,
+        Config.dataset,
+        Config.prefix,
+        "checkpoint",
+        f"task_comp.pkl",
+    )
+    with open(task_save_path, "wb") as f:
+        pickle.dump(comp_tasks, f)
 
 
 if __name__ == "__main__":

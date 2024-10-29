@@ -364,11 +364,13 @@ class GaussianInvDynDiffusion(nn.Module):
         ar_inv=False,
         train_only_inv=False,
         train_only_diffuser=False,
+        act_pad=False,
     ):
         super().__init__()
         self.horizon = horizon
         self.observation_dim = observation_dim
         self.action_dim = action_dim
+        self.act_pad = act_pad
 
         # print('\nobs_dim : ', self.observation_dim)
         # print('act_dim : ', self.action_dim)
@@ -385,8 +387,11 @@ class GaussianInvDynDiffusion(nn.Module):
                 action_dim=action_dim,
             )
         else:
+            dim_in = observation_dim
+            if self.act_pad:
+                dim_in = observation_dim - action_dim
             self.inv_model = nn.Sequential(
-                nn.Linear(2 * self.observation_dim, hidden_dim),
+                nn.Linear(2 * dim_in, hidden_dim),
                 nn.ReLU(),
                 nn.Linear(hidden_dim, hidden_dim),
                 nn.ReLU(),
@@ -696,20 +701,42 @@ class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
     def __init__(self, *args, **kwargs):
         self.level_dim = kwargs.pop("level_dim")
         self.num_level = kwargs.pop("num_level")
+        self.level_condition = kwargs.pop("level_condition")
 
         super().__init__(*args, **kwargs)
-        self.level_layer = nn.Linear(self.num_level, self.level_dim)
-        self.transition_dim += self.level_dim
+        if self.level_dim:
+            self.level_layer = nn.Linear(self.num_level, self.level_dim)
+            if not self.level_condition:
+                self.transition_dim += self.level_dim
+        else:
+            if not self.level_condition:
+                self.transition_dim += self.num_level
 
     def p_mean_variance(self, x, cond, level, t, returns=None):
         if self.returns_condition:
             # epsilon could be epsilon or x0 itself
-            epsilon_cond = self.model(
-                torch.cat([x, level], dim=-1), cond, t, returns, use_dropout=False
-            )
-            epsilon_uncond = self.model(
-                torch.cat([x, level], dim=-1), cond, t, returns, force_dropout=True
-            )
+            if not self.level_condition:
+                epsilon_cond = self.model(
+                    torch.cat([x, level], dim=-1), cond, t, returns, use_dropout=False
+                )
+                epsilon_uncond = self.model(
+                    torch.cat([x, level], dim=-1), cond, t, returns, force_dropout=True
+                )
+            else:
+                epsilon_cond = self.model(
+                    x,
+                    cond,
+                    t,
+                    torch.cat([returns, level[:, 0]], dim=-1),
+                    use_dropout=False,
+                )
+                epsilon_uncond = self.model(
+                    x,
+                    cond,
+                    t,
+                    torch.cat([returns, level[:, 0]], dim=-1),
+                    force_dropout=True,
+                )
             epsilon = epsilon_uncond + self.condition_guidance_w * (
                 epsilon_cond - epsilon_uncond
             )
@@ -792,7 +819,10 @@ class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
                 batch_size = 1
         horizon = horizon or self.horizon
         shape = (batch_size, horizon, self.observation_dim)
-        level_emb = self.level_layer(level)
+        if self.level_dim:
+            level_emb = self.level_layer(level)
+        else:
+            level_emb = level
 
         return self.p_sample_loop(shape, cond, level_emb, returns, *args, **kwargs)
 
@@ -800,7 +830,12 @@ class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
         noise = torch.randn_like(x_start)
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         x_noisy = apply_conditioning(x_noisy, cond, 0)  # x_noisy
-        x_recon = self.model(torch.cat([x_noisy, level], dim=-1), cond, t, returns)
+        if not self.level_condition:
+            x_recon = self.model(torch.cat([x_noisy, level], dim=-1), cond, t, returns)
+        else:
+            x_recon = self.model(
+                x_noisy, cond, t, torch.cat([returns, level[:, 0]], dim=-1)
+            )
 
         if not self.predict_epsilon:
             x_recon = apply_conditioning(x_recon, cond, 0)
@@ -816,7 +851,10 @@ class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
         return loss, info
 
     def loss(self, x, cond, level, returns=None):
-        level_emb = self.level_layer(level)
+        if self.level_dim:
+            level_emb = self.level_layer(level)
+        else:
+            level_emb = level
         batch_size = len(x)
 
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
@@ -828,9 +866,13 @@ class GaussianInvDynDiffusionCL(GaussianInvDynDiffusion):
         level_idx = level[:, 0].argmax(-1)  # b,
         level1_idx = torch.where(level_idx == 0)[0]
         level1_x = torch.index_select(x, dim=0, index=level1_idx)
-        x_t = level1_x[:, :-1, self.action_dim :]
         a_t = level1_x[:, :-1, : self.action_dim]
-        x_t_1 = level1_x[:, 1:, self.action_dim :]
+        if self.act_pad:
+            x_t = level1_x[:, :-1, self.action_dim : -self.action_dim]
+            x_t_1 = level1_x[:, 1:, self.action_dim : -self.action_dim]
+        else:
+            x_t = level1_x[:, :-1, self.action_dim :]
+            x_t_1 = level1_x[:, 1:, self.action_dim :]
         x_comb_t = torch.cat([x_t, x_t_1], dim=-1)
         # x_comb_t = x_comb_t.reshape(-1, 2 * self.observation_dim)
         # a_t = a_t.reshape(-1, self.action_dim)

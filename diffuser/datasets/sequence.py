@@ -174,6 +174,8 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         segment_return=False,
         jumps=[],
         task_len=None,
+        act_pad=False,
+        cum_rew=False,
     ):
         env_name = env
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
@@ -189,6 +191,8 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         self.jumps = jumps
         self.level_dim = len(self.jumps)
         self.segment_return = segment_return
+        self.act_pad = act_pad
+        self.cum_rew = cum_rew
         if self.jumps:
             self.segmt_len = int(np.ceil(self.horizon / self.jumps[-1]))
         else:
@@ -284,25 +288,35 @@ class CondSequenceDataset(torch.utils.data.Dataset):
         jump = self.jump
 
         observations = self.fields.normed_observations[path_ind, start:end][::jump]
+        if self.act_pad:
+            pad_actions = self.fields.normed_actions[
+                path_ind, start : start + jump * horizon
+            ].reshape(horizon, jump * self.action_dim)
+            observations = np.concatenate([observations, pad_actions], axis=-1)
         actions = self.fields.normed_actions[path_ind, start:end][::jump]
         traj_dim = self.action_dim + self.observation_dim
 
         t_step = 1
-        conditions = np.ones((horizon, self.observation_dim * 2)).astype(np.float32)
-        conditions[:, self.observation_dim :] = 0
+        obs_dim = observations.shape[-1]
+        conditions = np.ones((horizon, obs_dim * 2)).astype(np.float32)
+        conditions[:, obs_dim:] = 0
+        # conditions[:, obs_dim : obs_dim + self.observation_dim] = 0
         conditions[:t_step, : self.observation_dim] = 0
-        conditions[:t_step, self.observation_dim :] = observations[:t_step]
+        conditions[:t_step, obs_dim : obs_dim + self.observation_dim] = observations[
+            :t_step, : self.observation_dim
+        ]
 
         import random
 
         start_index = random.randint(1, horizon - 1)
         end_index = random.randint(start_index, horizon - 1)
 
+        # todo: mask only for stitcher
         # [0, t_step] and [start_index, end_index] is masked
-        conditions[start_index : end_index + 1, : self.observation_dim] = 0
-        conditions[start_index : end_index + 1, self.observation_dim :] = observations[
-            start_index : end_index + 1
-        ]
+        # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+        # conditions[start_index : end_index + 1, self.observation_dim :] = observations[
+        #     start_index : end_index + 1
+        # ]
         trajectories = np.concatenate(
             [actions, observations], axis=-1
         )  # shape is (100, 14)
@@ -313,6 +327,108 @@ class CondSequenceDataset(torch.utils.data.Dataset):
                 rewards = self.fields.rewards[path_ind, start:end]
             else:
                 rewards = self.fields.rewards[path_ind, start:]
+            if self.cum_rew:
+                rewards = np.cumsum(rewards, axis=0)
+            discounts = self.discounts[: len(rewards)]
+            returns = (discounts * rewards).sum()
+            returns = np.array([returns / self.returns_scale], dtype=np.float32)
+            batch = RewardBatch(trajectories, conditions, returns)
+        else:
+            batch = Batch(trajectories, conditions)
+
+        return batch
+
+
+class CondLLSequenceDataset(CondSequenceDataset):
+    def __init__(
+        self,
+        env="hopper-medium-expert-v2",
+        horizon=64,
+        normalizer="LimitsNormalizer",
+        preprocess_fns=[],
+        max_path_length=1000,
+        max_n_episodes=800000,
+        termination_penalty=0,
+        use_padding=True,
+        discount=0.99,
+        returns_scale=1000,
+        include_returns=False,
+        data_file=None,
+        stitch=False,
+        task_data=False,
+        jump=1,
+        aug_data_file=None,
+        segment_return=False,
+        jumps=[],
+        task_len=None,
+        act_pad=False,
+        cum_rew=False,
+    ):
+        super().__init__(
+            env,
+            horizon,
+            normalizer,
+            preprocess_fns,
+            max_path_length,
+            max_n_episodes,
+            termination_penalty,
+            use_padding,
+            discount,
+            returns_scale,
+            include_returns,
+            data_file,
+            stitch,
+            task_data,
+            jump,
+            aug_data_file,
+            segment_return,
+            jumps,
+            task_len,
+            act_pad,
+            cum_rew,
+        )
+
+    def __getitem__(self, idx, eps=1e-4):
+        path_ind, start, end = self.indices[idx]
+        horizon = int(np.ceil(self.horizon / self.jump))
+        jump = self.jump
+
+        observations = self.fields.normed_observations[path_ind, start:end][::jump]
+        actions = self.fields.normed_actions[path_ind, start:end][::jump]
+        traj_dim = self.action_dim + self.observation_dim
+
+        t_step = 1
+        conditions = np.ones((horizon, self.observation_dim * 2)).astype(np.float32)
+        conditions[:, self.observation_dim :] = 0
+        conditions[:t_step, : self.observation_dim] = 0
+        conditions[:t_step, self.observation_dim :] = observations[:t_step]
+
+        conditions[-1:, : self.observation_dim] = 0
+        conditions[-1:, self.observation_dim :] = observations[-1:]
+
+        import random
+
+        start_index = random.randint(1, horizon - 1)
+        end_index = random.randint(start_index, horizon - 1)
+
+        # todo: mask only for stitcher
+        # [0, t_step] and [start_index, end_index] is masked
+        # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+        # conditions[start_index : end_index + 1, self.observation_dim :] = observations[
+        #     start_index : end_index + 1
+        # ]
+        trajectories = np.concatenate(
+            [actions, observations], axis=-1
+        )  # shape is (100, 14)
+
+        if self.include_returns:
+            if self.segment_return:
+                path_len = self.fields.path_lengths[path_ind]
+                rewards = self.fields.rewards[path_ind, start:end]
+            else:
+                rewards = self.fields.rewards[path_ind, start:]
+            if self.cum_rew:
+                rewards = np.cumsum(rewards, axis=-1)
             discounts = self.discounts[: len(rewards)]
             returns = (discounts * rewards).sum()
             returns = np.array([returns / self.returns_scale], dtype=np.float32)
@@ -345,6 +461,8 @@ class CondCLSequenceDataset(CondSequenceDataset):
         segment_return=False,
         jumps=[],
         task_len=None,
+        act_pad=False,
+        cum_rew=False,
     ):
         super().__init__(
             env,
@@ -365,6 +483,9 @@ class CondCLSequenceDataset(CondSequenceDataset):
             aug_data_file,
             segment_return,
             jumps,
+            task_len,
+            act_pad,
+            cum_rew,
         )
         horizons = [
             1 + j if 1 + j > self.segmt_len else self.segmt_len for j in jumps[1:]
@@ -423,21 +544,27 @@ class CondCLSequenceDataset(CondSequenceDataset):
         start_index = random.randint(1, end_index)
         end_index = random.randint(start_index, end_index)
 
-        if random_level < num_levels - 1 and level_horizon < horizon:
-            conditions[start_index : end_index + 1, : self.observation_dim] = 0
-            conditions[start_index : end_index + 1, self.observation_dim :] = (
-                observations[start_index : end_index + 1]
-            )
-            conditions[level_horizon:, : self.observation_dim] = 0
-            conditions[level_horizon:, self.observation_dim :] = observations[
-                level_horizon : level_horizon + 1
-            ]
-        else:
-            # [0, t_step] and [start_index, end_index] is masked
-            conditions[start_index : end_index + 1, : self.observation_dim] = 0
-            conditions[start_index : end_index + 1, self.observation_dim :] = (
-                observations[start_index : end_index + 1]
-            )
+        # todo: lower levels where level_horizon > horizon
+        if random_level < num_levels - 1:
+            if level_horizon < horizon:
+                # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+                # conditions[start_index : end_index + 1, self.observation_dim :] = (
+                #     observations[start_index : end_index + 1]
+                # )
+                conditions[level_horizon - 1 :, : self.observation_dim] = 0
+                conditions[level_horizon - 1 :, self.observation_dim :] = observations[
+                    level_horizon - 1 : level_horizon
+                ]
+            else:
+                conditions[-1:, : self.observation_dim] = 0
+                conditions[-1:, self.observation_dim :] = observations[-1:]
+
+        # else:
+        # [0, t_step] and [start_index, end_index] is masked
+        # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+        # conditions[start_index : end_index + 1, self.observation_dim :] = (
+        #     observations[start_index : end_index + 1]
+        # )
         trajectories = np.concatenate(
             [actions, observations], axis=-1
         )  # shape is (100, 14)
@@ -447,6 +574,172 @@ class CondCLSequenceDataset(CondSequenceDataset):
                 rewards = self.fields.rewards[path_ind, start:end]
             else:
                 rewards = self.fields.rewards[path_ind, start + random_idx :]
+            if self.cum_rew:
+                rewards = np.cumsum(rewards, axis=-1)
+            discounts = self.discounts[: len(rewards)]
+            returns = (discounts * rewards).sum()
+            returns = np.array([returns / self.returns_scale], dtype=np.float32)
+            batch = LevelRewardBatch(trajectories, conditions, levels, returns)
+        else:
+            batch = LevelBatch(trajectories, conditions, levels)
+
+        return batch
+
+
+class CondCLSequenceDatasetV2(CondCLSequenceDataset):
+    def __init__(
+        self,
+        env="hopper-medium-expert-v2",
+        horizon=64,
+        normalizer="LimitsNormalizer",
+        preprocess_fns=[],
+        max_path_length=1000,
+        max_n_episodes=80000,
+        termination_penalty=0,
+        use_padding=True,
+        discount=0.99,
+        returns_scale=1000,
+        include_returns=False,
+        data_file=None,
+        stitch=False,
+        task_data=False,
+        jump=1,
+        aug_data_file=None,
+        segment_return=False,
+        jumps=[],
+        task_len=None,
+        act_pad=False,
+        cum_rew=False,
+    ):
+        super().__init__(
+            env,
+            horizon,
+            normalizer,
+            preprocess_fns,
+            max_path_length,
+            max_n_episodes,
+            termination_penalty,
+            use_padding,
+            discount,
+            returns_scale,
+            include_returns,
+            data_file,
+            stitch,
+            task_data,
+            jump,
+            aug_data_file,
+            segment_return,
+            jumps,
+            task_len,
+            act_pad,
+            cum_rew,
+        )
+        horizons = [
+            1 + j if 1 + j > self.segmt_len else self.segmt_len for j in jumps[1:]
+        ]
+        horizons = horizons + [horizon]
+        # self.indices = [
+        #     self.make_indices(self.fields.path_lengths, h) for h in horizons
+        # ]
+
+    def __getitem__(self, idx, eps=0.0001):
+        num_levels = len(self.jumps)
+        random_level = np.random.randint(0, len(self.jumps))
+
+        # indx_len = len(self.indices[random_level])
+        # idx = idx % indx_len
+        # path_ind, start, end = self.indices[random_level][idx]
+
+        path_ind, start, end = self.indices[idx]
+        jump = self.jumps[random_level]
+        horizon = self.segmt_len
+
+        observations = self.fields.normed_observations[path_ind, start:end][::jump]
+        actions = self.fields.normed_actions[path_ind, start:end][::jump]
+        if self.act_pad:
+            observations = np.concatenate([observations, actions], axis=-1)
+
+        random_idx = 0
+        if len(observations) > horizon:
+            random_idx = np.random.randint(0, len(observations) - horizon)
+            observations = observations[random_idx : random_idx + horizon]
+            actions = actions[random_idx : random_idx + horizon]
+
+        levels = np.eye(len(self.jumps), dtype=observations.dtype)[random_level]
+        levels = np.repeat(levels[None], horizon, axis=0)
+
+        traj_dim = self.action_dim + self.observation_dim + self.level_dim
+
+        t_step = 1
+        obs_dim = observations.shape[-1]
+        conditions = np.ones((horizon, obs_dim * 2)).astype(np.float32)
+        conditions[:, obs_dim:] = 0
+        conditions[:t_step, : self.observation_dim] = 0
+        conditions[:t_step, obs_dim : obs_dim + self.observation_dim] = observations[
+            :t_step, : self.observation_dim
+        ]
+
+        import random
+
+        # if random_level == 0 and self.jumps[1] + 1 < horizon:
+        end_index = horizon
+        if random_level < num_levels - 1:
+            level_horizon = int(
+                np.ceil((self.jumps[random_level + 1] + 1) / self.jumps[random_level])
+            )
+            if level_horizon < horizon:
+                end_index = level_horizon
+
+        start_index = random.randint(1, end_index)
+        end_index = random.randint(start_index, end_index)
+
+        # todo: lower levels where level_horizon > horizon
+        if random_level < num_levels - 1:
+            if level_horizon < horizon:
+                # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+                # conditions[start_index : end_index + 1, self.observation_dim :] = (
+                #     observations[start_index : end_index + 1]
+                # )
+                # a. mask the sub-goal
+                conditions[
+                    level_horizon - 1 : level_horizon, : self.observation_dim
+                ] = 0
+                conditions[
+                    level_horizon - 1 : level_horizon,
+                    obs_dim : obs_dim + self.observation_dim,
+                ] = observations[
+                    level_horizon - 1 : level_horizon, : self.observation_dim
+                ]
+                # b. mask random following states, could mask all or none
+                start_index = random.randint(level_horizon, horizon)
+                end_index = random.randint(start_index, horizon)
+                conditions[start_index:end_index, : self.observation_dim] = 0
+                conditions[
+                    start_index:end_index, obs_dim : obs_dim + self.observation_dim :
+                ] = observations[start_index:end_index, : self.observation_dim]
+            else:
+                conditions[-1:, : self.observation_dim] = 0
+                conditions[-1:, obs_dim : obs_dim + self.observation_dim] = (
+                    observations[-1:, : self.observation_dim]
+                )
+
+        # else:
+        # [0, t_step] and [start_index, end_index] is masked
+        # conditions[start_index : end_index + 1, : self.observation_dim] = 0
+        # conditions[start_index : end_index + 1, self.observation_dim :] = (
+        #     observations[start_index : end_index + 1]
+        # )
+        trajectories = np.concatenate(
+            [actions, observations], axis=-1
+        )  # shape is (100, 14)
+
+        if self.include_returns:
+            if self.segment_return:
+                rewards = self.fields.rewards[path_ind, start:end]
+            else:
+                rewards = self.fields.rewards[path_ind, start + random_idx :]
+            if self.cum_rew:
+                rewards = np.cumsum(rewards, axis=-1)
             discounts = self.discounts[: len(rewards)]
             returns = (discounts * rewards).sum()
             returns = np.array([returns / self.returns_scale], dtype=np.float32)

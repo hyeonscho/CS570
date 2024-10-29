@@ -50,6 +50,10 @@ class Config(ParamsProto):
     data_file = None
     stitch = False
     task_data = True
+    jump = 1
+    jumps = []
+    segment_return = False
+    aug_data_file = None
 
     ## training
     n_steps_per_epoch = 10000

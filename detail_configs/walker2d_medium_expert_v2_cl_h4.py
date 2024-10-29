@@ -6,9 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-expert-v2/cl_h4"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-expert-v2/cl_h4_run3"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/cl"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-expert-v2/cl_h4"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/walker2d-medium-replay-expert-v2/cl_h4_run3"
     dataset = "walker2d-medium-expert-v2"
     test_ret = 0.85
     job_counter = 1
@@ -45,13 +45,14 @@ class Config(ParamsProto):
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
-    stitch = False
-    task_data = True
+    stitch = True
+    task_data = False
     jump = None
     aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_gym/round1_stitch_walker2d-medium-expert-v2_H50-v1.pkl"
     data_file = None
     segment_return = False
     jumps = [1, 4, 20]
+    task_len = None
 
     ## training
     n_steps_per_epoch = 10000

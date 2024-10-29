@@ -6,11 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/cl_h4"
+    prefix = "diffuser/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/cl_h4_run3"
     bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/gym_mujoco/cl"
-    job_name = (
-        "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/cl_h4"
-    )
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/halfcheetah-medium-replay-v2/cl_h4_run3"
     dataset = "halfcheetah-medium-replay-v2"
     test_ret = 0.85
     job_counter = 1
@@ -54,6 +52,7 @@ class Config(ParamsProto):
     data_file = None
     segment_return = False
     jumps = [1, 4, 20]
+    task_len = None
 
     ## training
     n_steps_per_epoch = 10000

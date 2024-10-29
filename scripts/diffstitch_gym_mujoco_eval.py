@@ -62,6 +62,7 @@ def evaluate(Config, test_r, env_list, dataset, trainer):
         samples = to_np(samples)
         action = to_np(action)
         action = dataset.normalizer.unnormalize(action, "actions")
+        action = action.clip(-1.0, 1.0)
 
         obs_list = []
         for i in range(num_eval):
@@ -116,9 +117,10 @@ def main(**deps):
         returns_scale=Config.returns_scale,
         data_file=Config.data_file,
         stitch=Config.stitch,
-        task_data=True,
-        aug_data_file=None,
+        task_data=Config.task_data,
+        aug_data_file=Config.aug_data_file,
         jump=1,
+        jumps=Config.jumps,
     )
 
     dataset = dataset_config()
@@ -127,7 +129,7 @@ def main(**deps):
     loadpath = os.path.join(Config.bucket, Config.dataset, Config.prefix, "checkpoint")
     print("\n\nloadpath = ", loadpath, end="\n\n")
 
-    loadpath = os.path.join(loadpath, f"state_1000000.pt")
+    loadpath = os.path.join(loadpath, f"state_300000.pt")
     state_dict = torch.load(loadpath, map_location=Config.device)
 
     torch.backends.cudnn.benchmark = True
@@ -148,7 +150,7 @@ def main(**deps):
         dim=Config.dim,
         returns_condition=Config.returns_condition,
         device=Config.device,
-        ll=True if Config.jump == 1 else False,
+        ll=True,
     )
 
     diffusion_config = utils.Config(
@@ -197,20 +199,47 @@ def main(**deps):
     trainer.ema_model.load_state_dict(state_dict["ema"])
 
     assert trainer.ema_model.condition_guidance_w == Config.condition_guidance_w
-    num_eval = 15
 
-    test_ret = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.15]
-    # if "hopper" in Config.dataset:
-    #     test_ret = [0.15, 0.2, 0.25, 0.3]
-    # if "walker2d" in Config.dataset:
-    #     test_ret = [0.85, 0.9, 0.95, 1.0, 1.05]
-    # if "halfcheetah" in Config.dataset:
-    #     test_ret = [0.85, 0.9, 0.95, 1.0, 1.05]
-
-    env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
+    test_ret = [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.6,
+    ]
+    # test_ret = [0.9, 0.95]
     total_rewards = []
+    total_num_eval = 15
+    num_eval = 15  # more than 15 instance will raise error
+    seeds = [0, 1, 2]
+    num_iter = total_num_eval // num_eval
+    env_list = [gym.make(Config.dataset) for _ in range(num_eval)]
     for test_r in test_ret:
-        total_rewards.append(evaluate(Config, test_r, env_list, dataset, trainer))
+        iter_rewards = []
+        for _ in range(num_iter):
+            iter_rewards.append(
+                evaluate(
+                    Config,
+                    test_r,
+                    env_list,
+                    dataset,
+                    trainer,
+                )
+            )
+
+        iter_rewards = np.concatenate(iter_rewards)
+        total_rewards.append(iter_rewards)
     total_rewards = np.array(total_rewards)
     [env.close() for env in env_list]
 

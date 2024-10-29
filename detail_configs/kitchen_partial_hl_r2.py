@@ -6,11 +6,9 @@ from params_proto.neo_proto import ParamsProto, PrefixProto, Proto
 class Config(ParamsProto):
     seed = 100
     device = "cuda:0"
-    prefix = (
-        "default_inv/predict_epsilon_100_1000000.0/dropout_0.25/kitchen/hl160/round2"
-    )
-    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/"
-    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/hl160/round2"
+    prefix = "default_inv/predict_epsilon_100_1000000.0/dropout_0.25/kitchen/hl40_r2"
+    bucket = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen/hl"
+    job_name = "predict_epsilon_100_1000000.0/dropout_0.25/kitchen_partial/hl40_r2"
     dataset = "kitchen-partial-v0"
     test_ret = 0.95
     job_counter = 1
@@ -35,23 +33,26 @@ class Config(ParamsProto):
 
     ## dataset
     termination_penalty = -1
-    returns_scale = 1.0  # Determined using rewards from the dataset
+    returns_scale = 2.0  # Determined using rewards from the dataset
     loader = "datasets.CondSequenceDataset"
     normalizer = "CDFNormalizer"
     preprocess_fns = []
     clip_denoised = True
     use_padding = True
     include_returns = True
-    discount = 0.99
-    max_path_length = 400
+    discount = 0.997
+    max_path_length = 260
     hidden_dim = 256
     ar_inv = False
     train_only_inv = False
     data_file = None
     stitch = False
-    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_kitchen/round2_stitch_kitchen_partial_H40-v1.pkl"
-    jump = 10
+    aug_data_file = "/common/users/cc1547/dataset/rainbow/stitching_kitchen/round2_stitch_kitchen_partial_v0_H20-v1.pkl"
+    jump = 6
     task_data = True
+    jumps = []
+    task_len = 20
+    segment_return = False
 
     ## training
     n_steps_per_epoch = 10000
@@ -69,12 +70,13 @@ class Config(ParamsProto):
     n_reference = 8
     save_checkpoints = True
     n_samples = 10
+    resume_step = 0
 
     # model
     model = "models.TemporalUnet"
     diffusion = "models.GaussianInvDynDiffusion"
     train_only_diffuser = True
-    horizon = 160
+    horizon = 36
     n_diffusion_steps = 100
     action_weight = 10
     loss_weights = None
@@ -87,3 +89,4 @@ class Config(ParamsProto):
     condition_dropout = 0.25
     condition_guidance_w = 1.2
     renderer = "utils.MuJoCoRenderer"
+    ll_loadpath = "/common/users/cc1547/projects/rainbow/diffstitch/diffuser/kitchen/hl/kitchen-partial-v0/default_inv/predict_epsilon_100_1000000.0/dropout_0.25/kitchen/ll7_r2/checkpoint"
