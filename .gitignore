@@ -20,3 +20,4 @@ back_mark/
 .vscode
 .ipynb_checkpoints
 .DS_Store
+logs/

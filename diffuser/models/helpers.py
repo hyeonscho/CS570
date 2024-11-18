@@ -52,13 +52,8 @@ class Conv1dBlock(nn.Module):
     Conv1d --> GroupNorm --> Mish
     """
 
-    def __init__(self, inp_channels, out_channels, kernel_size, mish=True, n_groups=8):
+    def __init__(self, inp_channels, out_channels, kernel_size, n_groups=8):
         super().__init__()
-
-        if mish:
-            act_fn = nn.Mish()
-        else:
-            act_fn = nn.SiLU()
 
         self.block = nn.Sequential(
             nn.Conv1d(
@@ -67,7 +62,7 @@ class Conv1dBlock(nn.Module):
             Rearrange("batch channels horizon -> batch channels 1 horizon"),
             nn.GroupNorm(n_groups, out_channels),
             Rearrange("batch channels 1 horizon -> batch channels horizon"),
-            act_fn,
+            nn.Mish(),
         )
 
     def forward(self, x):
@@ -99,16 +94,9 @@ def cosine_beta_schedule(timesteps, s=0.008, dtype=torch.float32):
     return torch.tensor(betas_clipped, dtype=dtype)
 
 
-def apply_conditioning(x, conditions, action_dim):
-    try:
-        obs_dim = conditions.shape[2] // 2
-        x[:, :, action_dim : action_dim + obs_dim] = (
-            torch.as_tensor(x[:, :, action_dim : action_dim + obs_dim])
-            * conditions[:, :, :obs_dim]
-        ) + conditions[:, :, obs_dim:]
-    except:
-        for t, val in conditions.items():
-            x[:, t, :] = val.clone()
+def apply_conditioning(x, conditions, action_dim, observation_dim):
+    for t, val in conditions.items():
+        x[:, t, action_dim:action_dim+observation_dim] = val.clone()
     return x
 
 
@@ -118,12 +106,12 @@ def apply_conditioning(x, conditions, action_dim):
 
 
 class WeightedLoss(nn.Module):
-
-    def __init__(self, weights, action_dim):
+    def __init__(self, weights, action_dim, observation_dim):
         super().__init__()
         self.register_buffer("weights", weights)
         self.action_dim = action_dim
-
+        self.observation_dim = observation_dim
+        
     def forward(self, pred, targ):
         """
         pred, targ : tensor
@@ -131,27 +119,36 @@ class WeightedLoss(nn.Module):
         """
         loss = self._loss(pred, targ)
         weighted_loss = (loss * self.weights).mean()
-        a0_loss = (
-            loss[:, 0, : self.action_dim] / self.weights[0, : self.action_dim]
-        ).mean()
-        return weighted_loss, {"a0_loss": a0_loss}
-
-
-class WeightedStateLoss(nn.Module):
-
-    def __init__(self, weights):
-        super().__init__()
-        self.register_buffer("weights", weights)
-
-    def forward(self, pred, targ):
-        """
-        pred, targ : tensor
-            [ batch_size x horizon x transition_dim ]
-        """
-        loss = self._loss(pred, targ)
-        weighted_loss = (loss * self.weights).mean()
-        return weighted_loss, {}
-
+        if self.action_dim != 0:
+            a0_loss = (
+                loss[:, 0, : self.action_dim] / self.weights[0, : self.action_dim]
+            ).mean()
+            a_loss = (
+                loss[:, :, : self.action_dim] / self.weights[:, : self.action_dim]
+            ).mean()
+            s_loss = (
+                loss[:, :, self.action_dim:self.action_dim+self.observation_dim] / self.weights[:, self.action_dim:self.action_dim+self.observation_dim]
+            ).mean()
+            if loss.shape[2] >= self.action_dim+self.observation_dim:
+                l_loss = (
+                    loss[:, :, self.action_dim+self.observation_dim:] / self.weights[:, self.action_dim+self.observation_dim:]
+                ).mean()
+            else:
+                l_loss = None
+        else:
+            a0_loss = torch.zeros(weighted_loss.shape).mean()
+            a_loss = torch.zeros(weighted_loss.shape).mean()
+            # s_loss = weighted_loss # The two loses are not the same?
+            s_loss = (
+                loss[:, :, self.action_dim:self.action_dim+self.observation_dim] * self.weights[:, self.action_dim:self.action_dim+self.observation_dim]
+            ).mean()
+            if loss.shape[2] >= self.action_dim+self.observation_dim:
+                l_loss = (
+                    loss[:, :, self.action_dim+self.observation_dim:] * self.weights[:, self.action_dim+self.observation_dim:]
+                ).mean()
+            else:
+                l_loss = None
+        return weighted_loss, {"a0_loss": a0_loss, "a_loss": a_loss, "s_loss": s_loss, "l_loss": l_loss}
 
 class ValueLoss(nn.Module):
     def __init__(self, *args):
@@ -182,31 +179,21 @@ class ValueLoss(nn.Module):
 
 
 class WeightedL1(WeightedLoss):
-
     def _loss(self, pred, targ):
         return torch.abs(pred - targ)
 
 
 class WeightedL2(WeightedLoss):
-
-    def _loss(self, pred, targ):
-        return F.mse_loss(pred, targ, reduction="none")
-
-
-class WeightedStateL2(WeightedStateLoss):
-
     def _loss(self, pred, targ):
         return F.mse_loss(pred, targ, reduction="none")
 
 
 class ValueL1(ValueLoss):
-
     def _loss(self, pred, targ):
         return torch.abs(pred - targ)
 
 
 class ValueL2(ValueLoss):
-
     def _loss(self, pred, targ):
         return F.mse_loss(pred, targ, reduction="none")
 
@@ -214,7 +201,6 @@ class ValueL2(ValueLoss):
 Losses = {
     "l1": WeightedL1,
     "l2": WeightedL2,
-    "state_l2": WeightedStateL2,
     "value_l1": ValueL1,
     "value_l2": ValueL2,
 }

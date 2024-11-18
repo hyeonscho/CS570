@@ -2,7 +2,6 @@ import os
 import collections
 import importlib
 import pickle
-from ml_logger import logger
 
 def import_class(_class):
     if type(_class) is not str: return _class
@@ -12,27 +11,13 @@ def import_class(_class):
     module_name = '.'.join(_class.split('.')[:-1])
     ## eg, 'Renderer'
     class_name = _class.split('.')[-1]
-
-    """
-        范例: 
-        __name__: diffuser.utils.config 
-        _class: datasets.CondSequnceDataset
-        repo_name: diffuser
-        module_name: datasets
-        class name: CondSequenceDataset
-    """
-
     ## eg, 'diffusion.utils'
     module = importlib.import_module(f'{repo_name}.{module_name}')
     ## eg, diffusion.utils.Renderer
     _class = getattr(module, class_name)
     print(f'[ utils/config ] Imported {repo_name}.{module_name}:{class_name}')
-    # 最后把这个 class 给拿出来，然后返回 
     return _class
 
-# python 中 collections.Mapping 的作用: 
-#
-#
 class Config(collections.Mapping):
 
     def __init__(self, _class, verbose=True, savepath=None, device=None, **kwargs):
@@ -47,7 +32,8 @@ class Config(collections.Mapping):
             print(self)
 
         if savepath is not None:
-            logger.save_pkl(self, savepath)
+            savepath = os.path.join(*savepath) if type(savepath) is tuple else savepath
+            pickle.dump(self, open(savepath, 'wb'))
             print(f'[ utils/config ] Saved config to: {savepath}\n')
 
     def __repr__(self):
@@ -75,9 +61,7 @@ class Config(collections.Mapping):
         except KeyError:
             raise AttributeError(attr)
 
-    def __call__(self, *args, **kwargs):    
-        print('class = ', self._class) 
-        print('kwargs = ', kwargs) 
+    def __call__(self, *args, **kwargs):
         instance = self._class(*args, **kwargs, **self._dict)
         if self._device:
             instance = instance.to(self._device)
