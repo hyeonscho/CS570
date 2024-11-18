@@ -21,3 +21,6 @@ back_mark/
 .ipynb_checkpoints
 .DS_Store
 logs/
+
+mjkey.txt
+.wandb_api_key
