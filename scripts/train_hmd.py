@@ -20,7 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class Parser(utils.Parser):
     dataset: str = "maze2d-large-v1"
-    config: str = "config.maze2d_hl"
+    config: str = "config.maze2d_hmd"
 
 
 args = Parser().parse_args("diffusion")
@@ -38,8 +38,9 @@ dataset_config = utils.Config(
     preprocess_fns=args.preprocess_fns,
     use_padding=args.use_padding,
     max_path_length=args.max_path_length,
-    jump=args.jump,
+    jumps=args.jumps,
     jump_action=args.jump_action,
+    short_seq_len=args.short_seq_len,
 )
 
 render_config = utils.Config(
@@ -52,7 +53,9 @@ dataset = dataset_config()
 renderer = render_config()
 
 observation_dim = dataset.observation_dim
-action_dim = dataset.action_dim * args.jump
+# Not gonna work for jump_action != "none" -> and Dense action setting 
+action_dim = dataset.action_dim #* args.jump
+level_dim = len(args.jumps) if args.level_dim is None else args.level_dim
 if args.jump_action == "none":
     action_dim = 0
 
@@ -64,8 +67,8 @@ if args.jump_action == "none":
 model_config = utils.Config(
     args.model,
     savepath=(args.savepath, "model_config.pkl"),
-    horizon=args.horizon // args.jump,
-    transition_dim=observation_dim + action_dim,
+    horizon=args.short_seq_len, #args.horizon // args.jump,
+    transition_dim=observation_dim + action_dim + level_dim,
     cond_dim=observation_dim,
     dim=args.dim,
     dim_mults=args.dim_mults,
@@ -78,10 +81,11 @@ model_config = utils.Config(
 diffusion_config = utils.Config(
     args.diffusion,
     savepath=(args.savepath, "diffusion_config.pkl"),
-    horizon=args.horizon // args.jump,
+    horizon=args.short_seq_len, #args.horizon // args.jump,
     condition=args.condition,
     observation_dim=observation_dim,
     action_dim=action_dim,
+    level_dim=level_dim,
     n_timesteps=args.n_diffusion_steps,
     loss_type=args.loss_type,
     clip_denoised=args.clip_denoised,
@@ -94,7 +98,7 @@ diffusion_config = utils.Config(
 )
 
 trainer_config = utils.Config(
-    utils.Trainer,
+    utils.HMDTrainer,
     savepath=(args.savepath, "trainer_config.pkl"),
     train_batch_size=args.batch_size,
     train_lr=args.learning_rate,

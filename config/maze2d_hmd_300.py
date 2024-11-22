@@ -34,9 +34,9 @@ base = {
     "diffusion": {
         ## model
         "model": "models.TemporalUnet",
-        "diffusion": "models.GaussianDiffusion",
+        "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
         "horizon": 300,
-        "jump": 15,
+        # "jump": 15,
         "jump_action": "none",
         "condition": True,
         "n_diffusion_steps": 256,
@@ -51,7 +51,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDataset",
+        "loader": "datasets.GoalDatasetHMD",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
@@ -78,13 +78,20 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
+        
+        "jumps": [1, 2, 3, 10, 20, 30],
+        "short_seq_len": 11,
+        "level_dim": None,
     },
     "plan": {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
         "horizon": 300,
-        "jump": 15,
+        # "jump": 15,
+        "jumps": [1, 2, 3, 10, 20, 30],
+        "short_seq_len": 11,
+        "level_dim": None,
         "jump_action": "none",
         "attention": False,
         "condition": True,
@@ -134,8 +141,10 @@ maze2d_large_v1 = {
     "diffusion": {
         "horizon": 300,
         "n_diffusion_steps": 256,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 3, 3),
+        "upsample_k": (4, 3),
+        "downsample_k": (3, 3),
+        # "upsample_k": (4, 4, 4),
+        # "downsample_k": (4, 3, 3),
     },
     "plan": {
         "horizon": 300,

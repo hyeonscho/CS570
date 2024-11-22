@@ -107,10 +107,16 @@ if __name__ == "__main__":
             config: str = cfg
 
         args = Parser().parse_args("plan")
+        restricted_pd = True
+        args.restricted_pd =  restricted_pd
+        args.savepath = args.savepath.replace('rpdFalse', f'rpd{restricted_pd}')
+        args.savepath = args.savepath.replace('rpdTrue', f'rpd{restricted_pd}')
+        print(args.savepath)
+
         epochs = ["latest"]
 
         for dataset in [args.dataset] if args.dataset else DATASETS:
-            subdir = "/root/hd/" + os.path.join(*args.savepath.split("/")[:-1])
+            subdir = "/root/diffuser_chain_hd/" + os.path.join(*args.savepath.split("/")[:-1])
             # subdir = subdir.replace("plans/", "plans_1M/")
             # subdir = '/root/hd/logs/maze2d-large-v1/plans/latest/release_H500_T100_LimitsNormalizer_b1_condFalse_J50'
             reldir = subdir.split("/")[-1]

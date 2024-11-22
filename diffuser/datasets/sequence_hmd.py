@@ -1,3 +1,4 @@
+# TODO
 from collections import namedtuple
 import numpy as np
 import torch
@@ -15,6 +16,7 @@ from d4rl.pointmaze import maze_model
 
 Batch = namedtuple("Batch", "trajectories conditions")
 ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
+LevelBatch = namedtuple("LevelBatch", "trajectories conditions levels")
 
 
 class SequenceDatasetHMD(torch.utils.data.Dataset):
@@ -28,8 +30,9 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         max_n_episodes=10000,
         termination_penalty=0,
         use_padding=True,
-        jump=1,
+        jumps=[1],
         jump_action=False,
+        short_seq_len=1,
     ):
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
         self.env_name = env
@@ -37,9 +40,10 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         self.horizon = horizon
         self.max_path_length = max_path_length
         self.use_padding = use_padding
+        self.short_seq_len = short_seq_len
         load_path = None
         itr = sequence_dataset(env, self.preprocess_fn, load_path=load_path)
-        self.jump = jump
+        self.jumps = jumps
         self.jump_action = jump_action
         fields = ReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
         for i, episode in enumerate(itr):
@@ -50,10 +54,11 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         self.normalizer = DatasetNormalizer(
             fields, normalizer, path_lengths=fields["path_lengths"]
         )
-        self.bins_lengths = [j*self.short_seq_len+1 for j in self.jumps]
+        self.bins_lengths = [j*self.short_seq_len for j in self.jumps]
         self.indices = [
             self.make_indices(fields.path_lengths, h) for h in self.bins_lengths
         ]
+        print(f"bins_lengths: {self.bins_lengths}, indices: {len(self.indices)}")
 
         self.observation_dim = fields.observations.shape[-1]
         self.action_dim = fields.actions.shape[-1]
@@ -98,24 +103,36 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         return {0: observations[0]}
 
     def __len__(self):
-        return len(self.indices)
+        return len(self.indices[0]) # the one that had the largest amount of trajectories because it has smallest jump and horizon 
 
     def __getitem__(self, idx, eps=1e-4):
         ok = False
-        path_ind, start, end = self.indices[idx]
+        # from diffuser.utils.debug import debug
+        # debug()
+        random_level = np.random.randint(0, len(self.jumps))
+        jump_idx = random_level #self.params.get('jump_idx', None) or random_level
+
+        indx_len = len(self.indices[jump_idx])
+        idx = idx % indx_len
+        
+        path_ind, start, end = self.indices[jump_idx][idx]
+        self.jump = self.jumps[jump_idx]
         observations = self.fields.normed_observations[path_ind, start:end][
             :: self.jump
         ]
-        actions = self.fields.normed_actions[path_ind, start:end].reshape(
-            -1, self.jump * self.action_dim
-        )
+        levels = np.eye(len(self.jumps), dtype=observations.dtype)[jump_idx] # one-hot encoding
 
         conditions = self.get_conditions(observations)
         if self.jump_action == "none":
             trajectories = observations
         else:
+            raise NotImplementedError("jump_action != none")
+            actions = self.fields.normed_actions[path_ind, start:end].reshape(
+                -1, self.jump * self.action_dim
+            )
             trajectories = np.concatenate([actions, observations], axis=-1)
-        batch = Batch(trajectories, conditions)
+        # batch = Batch(trajectories, conditions)
+        batch = LevelBatch(trajectories, conditions, levels)
         return batch
 
 
@@ -126,7 +143,7 @@ class GoalDatasetHMD(SequenceDatasetHMD):
         """
         return {
             0: observations[0],
-            self.horizon // self.jump - 1: observations[-1],
+            self.short_seq_len-1: observations[-1],
         }
 
 

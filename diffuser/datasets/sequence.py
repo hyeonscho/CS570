@@ -38,7 +38,6 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.max_path_length = max_path_length
         self.use_padding = use_padding
         load_path = None
-        from diffuser.utils.debug import debug
         itr = sequence_dataset(env, self.preprocess_fn, load_path=load_path)
         self.jump = jump
         self.jump_action = jump_action

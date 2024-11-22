@@ -19,19 +19,19 @@ from .helpers import (
 from diffuser.utils.debug import debug
 
 # Not good
-class GaussianDiffusionBase(GaussianDiffusion):
+class GaussianDiffusionHMDBase(GaussianDiffusion):
     def __init__(self, *args, **kwargs):
         self.level_dim = kwargs.pop("level_dim")
-        short_seq_len = kwargs.pop("short_seq_len")
         super().__init__(*args, **kwargs)
         print('level_dim : ', self.level_dim, "\n")
         self.level_layer = nn.Linear(self.level_dim, self.level_dim)
         self.transition_dim += self.level_dim
         
-        self.horizon = short_seq_len
+        print("horizon: ", self.horizon, "\n")
         
         level_weight = 1.0
         loss_weights = self._get_loss_weights(kwargs["action_weight"], level_weight, kwargs["loss_discount"], kwargs["loss_weights"])
+        
         self.loss_fn = Losses[kwargs["loss_type"]](loss_weights, self.action_dim, self.observation_dim)
 
     def _get_loss_weights(self, action_weight, level_weight, discount, weights_dict):
@@ -158,14 +158,20 @@ class GaussianDiffusionBase(GaussianDiffusion):
         return self.conditional_sample(cond=cond, level=level, *args, **kwargs)
 
 
+# TODO: Make another one that conditions the level similar to the time
+class GaussianDiffusionHMD2(GaussianDiffusionHMDBase):
+    pass
+
 # Good
-class GaussianDiffusionHMDNoLevelWeight(GaussianDiffusionBase):
+class GaussianDiffusionHMDNoLevelWeight(GaussianDiffusionHMDBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         level_weight = 0.0
         loss_weights = self._get_loss_weights(kwargs["action_weight"], level_weight, kwargs["loss_discount"], kwargs["loss_weights"])
         self.loss_fn = Losses[kwargs["loss_type"]](loss_weights, self.action_dim, self.observation_dim)
+        print(len(loss_weights))
+
 
     def apply_conditioning(self, x, conditions, level, replace_level=True, add_level=False):
         # x: BxTxD for a single denoising step
@@ -173,7 +179,7 @@ class GaussianDiffusionHMDNoLevelWeight(GaussianDiffusionBase):
         return super().apply_conditioning(x, conditions, level, replace_level=True, add_level=add_level)
     
 # Good
-class GaussianDiffusionHMDNoLevelOut(GaussianDiffusionBase):
+class GaussianDiffusionHMDNoLevelOut(GaussianDiffusionHMDBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         

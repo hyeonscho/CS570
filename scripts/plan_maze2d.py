@@ -2,6 +2,8 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# exit()
 
 
 import json
@@ -21,10 +23,8 @@ parser.add_argument('--rpd', action='store_true')
 args, leftovers = parser.parse_known_args()
 
 cfg = args.cfg
-
 # I do not know why the parser does not work -> quick solution -> argparse and override
 restricted_pd = args.rpd
-
 
 
 class Parser(utils.Parser):
@@ -39,6 +39,15 @@ n_samples = 100
 
 args = Parser().parse_args('plan')
 
+# bad workaround, just for now
+args.restricted_pd =  restricted_pd
+args.savepath = args.savepath.replace('rpdFalse', f'rpd{restricted_pd}')
+args.savepath = args.savepath.replace('rpdTrue', f'rpd{restricted_pd}')
+
+
+from diffuser.utils.serialization import mkdir
+print(args.savepath)
+mkdir(args.savepath)
 # logger = utils.Logger(args)
 
 env = datasets.load_environment(args.dataset)
@@ -76,7 +85,7 @@ for i in range(n_samples):
     rollout = [observation.copy()]
 
     total_reward = 0
-    distance_threshold = 0.8
+    distance_threshold = 2
     for t in range(env.max_episode_steps):
 
         state = env.state_vector().copy()

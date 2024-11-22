@@ -50,6 +50,17 @@ ll_args = LLParser().parse_args("plan")
 # ---------------------------------- loading ----------------------------------#
 
 
+# bad workaround, just for now
+hl_args.restricted_pd =  restricted_pd
+hl_args.savepath = hl_args.savepath.replace('rpdFalse', f'rpd{restricted_pd}')
+hl_args.savepath = hl_args.savepath.replace('rpdTrue', f'rpd{restricted_pd}')
+
+
+from diffuser.utils.serialization import mkdir
+print(hl_args.savepath)
+mkdir(hl_args.savepath)
+
+
 n_samples = 100
 
 loadpath = (hl_args.logbase, hl_args.dataset, hl_args.diffusion_loadpath)
@@ -129,7 +140,7 @@ for i in range(n_samples):
     max_episode_steps = env_eval.max_episode_steps
     finished = False
     t = 0
-    distance_threshold = 0.8
+    distance_threshold = 2
     # print(len(ll_sequence))
     while t < max_episode_steps:
         if finished:
