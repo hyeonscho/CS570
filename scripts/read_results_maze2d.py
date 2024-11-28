@@ -58,7 +58,7 @@ def load_results(paths):
         else:
             mean = np.mean(scores)
             returns = np.array(returns)
-        sus_rate = len(np.where(scores)[0]) / len(scores)
+        sus_rate = len(np.where(returns)[0]) / len(returns)
     else:
         mean = np.nan
         sus_rate = np.nan
@@ -98,7 +98,12 @@ if __name__ == "__main__":
     # configs = ["config.maze2d_hl_300",
     #            "config.maze2d_hl_hmdConfig300_J15"]
     
-    configs = ['config.maze2d_300', 'config.maze2d_390', 'config.maze2d_hmdConfig300', 'config.maze2d_hmdConfig500', 'config.maze2d_hl_300', 'config.maze2d_hl_390J30', 'config.maze2d_hl_hmdConfig300_J15_OriginalConfigKernel', 'config.maze2d_hl_hmdConfig300_J15', 'config.maze2d_hl_hmdConfig300', 'config.maze2d_hl_hmdConfig390', 'config.maze2d_hl_hmdConfig500_J20', 'config.maze2d_hl_hmdConfig500']
+    configs = []
+    
+    # configs += ['config.maze2d_300', 'config.maze2d_390', 'config.maze2d_hmdConfig300', 'config.maze2d_hmdConfig500', 'config.maze2d_hl_300', 'config.maze2d_hl_390J30', 'config.maze2d_hl_hmdConfig300_J15_OriginalConfigKernel', 'config.maze2d_hl_hmdConfig300_J15', 'config.maze2d_hl_hmdConfig300', 'config.maze2d_hl_hmdConfig390', 'config.maze2d_hl_hmdConfig500_J20', 'config.maze2d_hl_hmdConfig500']
+
+
+    configs += ['config.maze2d_hmd_300', 'config.maze2d_hmd_400', 'config.maze2d_hmd_500']
 
     for cfg in configs:
 

@@ -1,4 +1,5 @@
 import gym
+from .xxlarge import XXLARGE_MAZE
 
 ENVIRONMENT_SPECS = (
     {
@@ -17,6 +18,22 @@ ENVIRONMENT_SPECS = (
         'id': 'AntFullObs-v2',
         'entry_point': ('diffuser.environments.ant:AntFullObsEnv'),
     },
+    
+    {
+        'id':'maze2d-xxlarge-v1',
+        'entry_point':'d4rl.pointmaze:MazeEnv',
+        'max_episode_steps':1300,
+        'kwargs':{
+            'maze_spec':XXLARGE_MAZE,
+            'reward_type':'sparse',
+            'reset_target': False,
+            'ref_min_score': 3.28,
+            'ref_max_score': 310.1,
+            # 'dataset_url': 'file:///data/datasets/d4rl/maze2d-xxlarge-sparse-v1.hdf5'
+            'dataset_url':'http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5'
+        }
+    }
+
 )
 
 def register_environments():

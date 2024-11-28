@@ -16,6 +16,8 @@ from .helpers import (
     Losses,
 )
 
+from einops.layers.torch import Rearrange
+
 from diffuser.utils.debug import debug
 
 # Not good
@@ -161,6 +163,7 @@ class GaussianDiffusionHMDBase(GaussianDiffusion):
 # TODO: Make another one that conditions the level similar to the time
 class GaussianDiffusionHMD2(GaussianDiffusionHMDBase):
     pass
+    
 
 # Good
 class GaussianDiffusionHMDNoLevelWeight(GaussianDiffusionHMDBase):
@@ -294,6 +297,146 @@ class GaussianDiffusionNoCondition(GaussianDiffusion):
         device = x.device
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
         return self.p_losses(x, cond, t, return_rec)
+
+
+# Here the last output of the model is the one that generates the level
+class GaussianDiffusionHMDLearnableCondition(GaussianDiffusion):
+    def p_mean_variance(self, x, cond, t, return_x_recon=False):
+        x_recon = self.predict_start_from_noise(x, t=t, noise=self.model(x, cond, t)[:,:,:self.action_dim+self.observation_dim])
+
+        if self.clip_denoised:
+            x_recon.clamp_(-1.0, 1.0)
+        else:
+            assert RuntimeError()
+
+        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
+            x_start=x_recon, x_t=x, t=t
+        )
+        if return_x_recon:
+            return model_mean, posterior_variance, posterior_log_variance, x_recon
+        else:
+            return model_mean, posterior_variance, posterior_log_variance
+
+    def aux_loss(self, pred, target):
+        B, T, _ = pred.shape
+        target = target.argmax(dim=-1).long()
+        pred = pred.reshape(-1, pred.shape[-1])
+        target = target.reshape(-1)
+        loss = F.cross_entropy(pred, target)
+        return loss / T # scale down the loss #normalized
+    
+    def p_losses(self, x_start, cond, t, level, return_rec=False):
+        noise = torch.randn_like(x_start)
+
+        x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
+        if self.condition:
+            x_noisy = self.apply_conditioning(x_noisy, cond)
+
+        x_recon = self.model(x_noisy, cond, t)
+        
+        aux_loss = self.aux_loss(x_recon[:,:, self.action_dim+self.observation_dim:], level)
+
+        x_recon = x_recon[:,:, :self.action_dim+self.observation_dim]
+        
+        if self.condition:
+            x_recon = self.apply_conditioning(x_recon, cond)
+
+        assert noise.shape == x_recon.shape
+
+        if self.predict_epsilon:
+            loss, info = self.loss_fn(x_recon, noise)
+        else:
+            loss, info = self.loss_fn(x_recon, x_start)
+
+        info["aux_loss"] = aux_loss
+        if return_rec:
+            return loss+aux_loss, info, x_recon
+        else:
+            return loss+aux_loss, info
+
+    
+    def loss(self, x, cond, level, return_rec=False, eval_n=None):
+        batch_size = len(x)
+        device = x.device
+        t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
+        level = einops.repeat(level, 'b d -> b n d', n=x.shape[1]) # repeat
+        # level is 1-hot encoding
+        assert len(level.shape) == len(x.shape)
+        return self.p_losses(x, cond, t, level, return_rec)
+
+
+
+class GaussianDiffusionHMDLearnableConditionNoAuxLoss(GaussianDiffusionHMDLearnableCondition):
+    def aux_loss(self, pred, target):
+        return 0.0
+
+
+class GaussianDiffusionHMDLearnableConditionNoLevelOutput(GaussianDiffusion):
+    def __init__(self, *args, **kwargs):
+        self.level_dim = kwargs.pop("level_dim")
+        super().__init__(*args, **kwargs)
+        print('level_dim : ', self.level_dim, "\n")
+        self.level_layer = nn.Sequential(
+            # Rearrange("b h d -> b d h"),
+            nn.Conv1d(self.observation_dim, self.level_dim, 2),
+            nn.AvgPool1d(self.horizon-1),
+            # # nn.Linear(self.horizon-1, 1),
+            # # nn.AdaptiveAvgPool1d(1),
+            # Rearrange("b d h -> b h d"),
+        )
+        # lambda x: x #nn.Linear(self.level_dim, self.level_dim))
+        
+    def aux_loss(self, x_recon, target):
+        B, T, _ = x_recon.shape
+        x_recon = einops.rearrange(x_recon, "b h d -> b d h")
+        pred = self.level_layer(x_recon) # B, D
+        pred = einops.rearrange(pred, "b d h -> b h d")
+        target = target.argmax(dim=-1).long()
+        pred = pred.reshape(-1, pred.shape[-1])
+        target = target[:, 0] # only one label # B, D
+        loss = F.cross_entropy(pred, target)
+        return loss #/ T
+        # return 0.0
+
+    def loss(self, x, cond, level, return_rec=False, eval_n=None):
+        batch_size = len(x)
+        device = x.device
+        t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
+        level = einops.repeat(level, 'b d -> b n d', n=x.shape[1]) # repeat
+        # level is 1-hot encoding
+        assert len(level.shape) == len(x.shape)
+        return self.p_losses(x, cond, t, level, return_rec)
+        
+    def p_losses(self, x_start, cond, t, level, return_rec=False):
+        noise = torch.randn_like(x_start)
+
+        x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
+        if self.condition:
+            x_noisy = self.apply_conditioning(x_noisy, cond)
+
+        x_recon = self.model(x_noisy, cond, t)
+        
+        aux_loss = self.aux_loss(x_recon.clone(), level)
+
+        x_recon = x_recon[:,:, :self.action_dim+self.observation_dim]
+        
+        if self.condition:
+            x_recon = self.apply_conditioning(x_recon, cond)
+
+        assert noise.shape == x_recon.shape
+
+        if self.predict_epsilon:
+            loss, info = self.loss_fn(x_recon, noise)
+        else:
+            loss, info = self.loss_fn(x_recon, x_start)
+
+        info["aux_loss"] = aux_loss
+        if return_rec:
+            return loss+aux_loss, info, x_recon
+        else:
+            return loss+aux_loss, info
+
+
 
 
 # TODO

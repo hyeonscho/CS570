@@ -34,7 +34,7 @@ class HLParser(utils.Parser):
     restricted_pd: bool = restricted_pd
 
 
-hl_args = HLParser().parse_args("plan")
+hl_args = HLParser().parse_args("plan", add_extras=False) # Discovered it later, so had to disable it as I am doing it here, until I test it
 
 
 class LLParser(utils.Parser):
@@ -43,7 +43,7 @@ class LLParser(utils.Parser):
     config: str = ll_cfg
     restricted_pd: bool = restricted_pd
 
-ll_args = LLParser().parse_args("plan")
+ll_args = LLParser().parse_args("plan", add_extras=False) # Discovered it later, so had to disable it as I am doing it here, until I test it
 
 # ---------------------------------- setup ----------------------------------#
 

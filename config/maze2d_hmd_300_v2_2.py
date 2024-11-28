@@ -11,7 +11,9 @@ diffusion_args_to_watch = [
     ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J"),
+    ("postfix", "")
 ]
 
 plan_args_to_watch = [
@@ -33,8 +35,8 @@ logbase = "logs"
 base = {
     "diffusion": {
         ## model
-        "model": "models.TemporalUnet",
-        "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
+        "model": "models.TemporalUnetHMDLearnableCondition",
+        "diffusion": "models.GaussianDiffusionHMDLearnableConditionNoAuxLoss",
         "horizon": 300,
         # "jump": 15,
         "jump_action": "none",
@@ -60,7 +62,8 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd/",
+        "prefix": "diffusion_hmd_v2_2/",
+        "postfix": "",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -103,18 +106,15 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd/release",
+        "prefix": "plans_hmd_v2_2/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}",
-        "diffusion_epoch": "latest",
-        
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}",
-        "classifier_epoch": "latest"#"latest", #400000#
+        "diffusion_loadpath": "f:diffusion_hmd_v2_2/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_",
+        "diffusion_epoch": "latest",        
     },
 }
 

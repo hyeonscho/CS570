@@ -11,7 +11,8 @@ diffusion_args_to_watch = [
     ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J")
 ]
 
 plan_args_to_watch = [
@@ -25,7 +26,8 @@ plan_args_to_watch = [
     ("batch_size", "b"),
     ##
     ("conditional", "cond"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    # ("jumps", "J"),
     ("restricted_pd", "rpd"),
 ]
 
@@ -35,7 +37,7 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
-        "horizon": 300,
+        "horizon": 500,
         # "jump": 15,
         "jump_action": "none",
         "condition": True,
@@ -79,7 +81,7 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 2, 3, 10, 20, 30],
+        "jumps": [1, 2, 3, 4, 5, 10, 20, 30, 40, 50],
         "short_seq_len": 11,
         "level_dim": None,
     },
@@ -87,9 +89,9 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 300,
+        "horizon": 500,
         # "jump": 15,
-        "jumps": [1, 2, 3, 10, 20, 30],
+        "jumps": [1, 2, 3, 4, 5, 10, 20, 30, 40, 50],
         "short_seq_len": 11,
         "level_dim": None,
         "jump_action": "none",
@@ -110,11 +112,13 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}",
+        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "diffusion_epoch": "latest",
-        
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}",
+
+        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "classifier_epoch": "latest"#"latest", #400000#
+
+
     },
 }
 
@@ -142,7 +146,7 @@ maze2d_umaze_v1 = {
 
 maze2d_large_v1 = {
     "diffusion": {
-        "horizon": 300,
+        "horizon": 500,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 3),
         "downsample_k": (3, 3),
@@ -150,7 +154,7 @@ maze2d_large_v1 = {
         # "downsample_k": (4, 3, 3),
     },
     "plan": {
-        "horizon": 300,
+        "horizon": 500,
         "n_diffusion_steps": 256,
     },
 }

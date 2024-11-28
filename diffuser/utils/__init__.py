@@ -7,3 +7,5 @@ from .rendering import *
 from .arrays import *
 from .colab import *
 from .training_hmd import *
+from .training_hmd import *
+from .training_level_classifier import *

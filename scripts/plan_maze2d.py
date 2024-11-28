@@ -17,7 +17,7 @@ import diffuser.utils as utils
 
 import argparse
 
-parser = argparse.ArgumentParser("hd", add_help=False)
+parser = argparse.ArgumentParser("diffuser", add_help=False)
 parser.add_argument("--cfg", type=str)
 parser.add_argument('--rpd', action='store_true')
 args, leftovers = parser.parse_known_args()
@@ -37,7 +37,7 @@ class Parser(utils.Parser):
 #---------------------------------- setup ----------------------------------#
 n_samples = 100
 
-args = Parser().parse_args('plan')
+args = Parser().parse_args('plan', add_extras=False) # Discovered it later, so had to disable it as I am doing it here, until I test it
 
 # bad workaround, just for now
 args.restricted_pd =  restricted_pd

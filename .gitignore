@@ -24,3 +24,5 @@ logs/
 
 mjkey.txt
 .wandb_api_key
+
+*.hdf5

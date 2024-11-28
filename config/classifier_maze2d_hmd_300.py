@@ -60,7 +60,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd/",
+        "prefix": "diffusion_hmd_classifier/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -72,7 +72,7 @@ base = {
         "ema_decay": 0.995,
         "save_freq": 1000,
         "sample_freq": 10000,
-        "n_saves": 50,
+        "n_saves": 5,
         "save_parallel": False,
         "n_reference": 50,
         "n_samples": 10,
@@ -82,6 +82,10 @@ base = {
         "jumps": [1, 2, 3, 10, 20, 30],
         "short_seq_len": 11,
         "level_dim": None,
+        
+        "classifier": "models.LevelClassifier",
+        "num_layers": 3,
+        "hidden_dim": 256,
     },
     "plan": {
         "batch_size": 1,
@@ -103,18 +107,17 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd/release",
+        "prefix": "plans/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}",
+        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest",
-        
         "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}",
-        "classifier_epoch": "latest"#"latest", #400000#
+        "classifier_epoch": 400000#"latest",
     },
 }
 

@@ -33,6 +33,7 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         jumps=[1],
         jump_action=False,
         short_seq_len=1,
+        make_multi_indices=True,
     ):
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
         self.env_name = env
@@ -55,10 +56,13 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
             fields, normalizer, path_lengths=fields["path_lengths"]
         )
         self.bins_lengths = [j*self.short_seq_len for j in self.jumps]
-        self.indices = [
-            self.make_indices(fields.path_lengths, h) for h in self.bins_lengths
-        ]
-        print(f"bins_lengths: {self.bins_lengths}, indices: {len(self.indices)}")
+        if make_multi_indices:
+            self.indices = [
+                self.make_indices(fields.path_lengths, h) for h in self.bins_lengths
+            ]
+            print(f"bins_lengths: {self.bins_lengths}, indices: {len(self.indices)}")
+        else:
+            self.indices = self.make_indices(fields.path_lengths, self.horizon)
 
         self.observation_dim = fields.observations.shape[-1]
         self.action_dim = fields.actions.shape[-1]

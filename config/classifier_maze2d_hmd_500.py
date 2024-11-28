@@ -11,7 +11,8 @@ diffusion_args_to_watch = [
     ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J")
 ]
 
 plan_args_to_watch = [
@@ -35,7 +36,7 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
-        "horizon": 300,
+        "horizon": 500,
         # "jump": 15,
         "jump_action": "none",
         "condition": True,
@@ -60,7 +61,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd/",
+        "prefix": "diffusion_hmd_classifier/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -79,17 +80,22 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 2, 3, 10, 20, 30],
+        "jumps": [1, 2, 3, 4, 5, 10, 20, 30, 40, 50],
         "short_seq_len": 11,
         "level_dim": None,
+
+        "classifier": "models.LevelClassifier",
+        "num_layers": 3,
+        "hidden_dim": 256,
+
     },
     "plan": {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 300,
+        "horizon": 500,
         # "jump": 15,
-        "jumps": [1, 2, 3, 10, 20, 30],
+        "jumps": [1, 2, 3, 4, 5, 10, 20, 30, 40, 50],
         "short_seq_len": 11,
         "level_dim": None,
         "jump_action": "none",
@@ -103,18 +109,15 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd/release",
+        "prefix": "plans/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}",
+        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest",
-        
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}",
-        "classifier_epoch": "latest"#"latest", #400000#
     },
 }
 
@@ -142,7 +145,7 @@ maze2d_umaze_v1 = {
 
 maze2d_large_v1 = {
     "diffusion": {
-        "horizon": 300,
+        "horizon": 500,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 3),
         "downsample_k": (3, 3),
@@ -150,7 +153,7 @@ maze2d_large_v1 = {
         # "downsample_k": (4, 3, 3),
     },
     "plan": {
-        "horizon": 300,
+        "horizon": 500,
         "n_diffusion_steps": 256,
     },
 }
