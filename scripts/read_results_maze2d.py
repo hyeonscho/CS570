@@ -102,8 +102,12 @@ if __name__ == "__main__":
     
     # configs += ['config.maze2d_300', 'config.maze2d_390', 'config.maze2d_hmdConfig300', 'config.maze2d_hmdConfig500', 'config.maze2d_hl_300', 'config.maze2d_hl_390J30', 'config.maze2d_hl_hmdConfig300_J15_OriginalConfigKernel', 'config.maze2d_hl_hmdConfig300_J15', 'config.maze2d_hl_hmdConfig300', 'config.maze2d_hl_hmdConfig390', 'config.maze2d_hl_hmdConfig500_J20', 'config.maze2d_hl_hmdConfig500']
 
+    # configs += ['config.maze2d_hl_390J15_actionWeight1']
+    
+    # configs += ['config.maze2d_390_actionWeight1']
 
-    configs += ['config.maze2d_hmd_300', 'config.maze2d_hmd_400', 'config.maze2d_hmd_500']
+    configs += ['config.maze2d_hmd_400_21']
+    # configs += ['config.maze2d_hmd_300', 'config.maze2d_hmd_400', 'config.maze2d_hmd_500']
 
     for cfg in configs:
 
@@ -112,7 +116,7 @@ if __name__ == "__main__":
             config: str = cfg
 
         args = Parser().parse_args("plan")
-        restricted_pd = True
+        restricted_pd = False
         args.restricted_pd =  restricted_pd
         args.savepath = args.savepath.replace('rpdFalse', f'rpd{restricted_pd}')
         args.savepath = args.savepath.replace('rpdTrue', f'rpd{restricted_pd}')

@@ -1,3 +1,4 @@
+# it is exactly the same as action_weight=10 as the action weight here does not matter
 import socket
 
 from diffuser.utils import watch

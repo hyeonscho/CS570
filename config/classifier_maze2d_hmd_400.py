@@ -80,8 +80,8 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 2, 3, 4, 10, 20, 30, 40],
-        "short_seq_len": 11,
+        "jumps": [1, 20],
+        "short_seq_len": 21,
         "level_dim": None,
 
         "classifier": "models.LevelClassifier",

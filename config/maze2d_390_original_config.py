@@ -60,7 +60,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion_actW1/",
+        "prefix": "original_diffuser/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -96,7 +96,7 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_actW1/release",
+        "prefix": "original_diffuser/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
