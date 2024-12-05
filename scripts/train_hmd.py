@@ -28,7 +28,6 @@ args = Parser().parse_args("diffusion")
 # -----------------------------------------------------------------------------#
 # ---------------------------------- dataset ----------------------------------#
 # -----------------------------------------------------------------------------#
-
 dataset_config = utils.Config(
     args.loader,
     savepath=(args.savepath, "dataset_config.pkl"),
@@ -54,10 +53,14 @@ renderer = render_config()
 
 observation_dim = dataset.observation_dim
 # Not gonna work for jump_action != "none" -> and Dense action setting 
-action_dim = dataset.action_dim #* args.jump
 level_dim = len(args.jumps) if args.level_dim is None else args.level_dim
 if args.jump_action == "none":
     action_dim = 0
+else:
+    assert type(args.jump_action) == int # determine the numbers of actions to be included
+    # assert args.jump_action <= args.jumps[-1] # make sure the action is not too big is not larger than the maximum jump
+    # Actually, the current implementation works only if args.jump_action=1 due to the constraints of the low-level
+    action_dim = dataset.action_dim * args.jump_action
 
 
 # -----------------------------------------------------------------------------#

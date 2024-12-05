@@ -35,18 +35,18 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "horizon": 16,
+        "jump": 1,
+        "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 256,
-        "action_weight": 10,
+        "n_diffusion_steps": 128,
+        "action_weight": 1,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (2, 2, 4, 8),
-        "upsample_k": (3, 3, 3),
-        "downsample_k": (3, 3, 3),
+        "dim_mults": (1, 4, 8),
+        "upsample_k": (4, 4),
+        "downsample_k": (4, 4),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
@@ -60,7 +60,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion/",
+        "prefix": "diffusion_actW1/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -83,18 +83,16 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
-        "attention": False,
+        "horizon": 16,
+        "jump": 1,
+        "jump_action": False,
         "condition": True,
         "kernel_size": 5,
         "dim": 32,
-        "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "normalizer": "LimitsNormalizer",
-        "logbase": logbase,
         ## serialization
+        "logbase": logbase,
         "vis_freq": 10,
         "prefix": "plans/release",
         "exp_name": watch(plan_args_to_watch),
@@ -103,7 +101,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffusion_actW1/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest",
     },
 }
@@ -116,43 +114,3 @@ base = {
         medium: 250
         large: 600
 """
-
-maze2d_umaze_v1 = {
-    "diffusion": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 4, 4),
-    },
-    "plan": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-    },
-}
-
-maze2d_large_v1 = {
-    "diffusion": {
-        "horizon": 390,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 3, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 390,
-        "n_diffusion_steps": 256,
-    },
-}
-
-maze2d_xxlarge_v1 = {
-    "diffusion": {
-        "max_path_length": 300000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-    },
-}

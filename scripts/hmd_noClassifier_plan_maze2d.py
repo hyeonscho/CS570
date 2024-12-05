@@ -1,3 +1,5 @@
+# This is for the case when we have a model that has only scale not a multiscale
+# One high-level and one low-level
 import os
 import sys
 
@@ -89,6 +91,7 @@ classifier = None
 policy = HMDPolicy(diffusion, dataset.normalizer, classifier, pairs, jumps, args.short_seq_len)
 
 #---------------------------------- main loop ----------------------------------#
+scores = []
 for i in range(n_samples):
 
     observation = env.reset()
@@ -229,3 +232,6 @@ for i in range(n_samples):
     json_data = {'score': score, 'step': t, 'return': total_reward, 'term': terminal,
         'epoch_diffusion': diffusion_experiment.epoch, 'levels': levels}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
+    scores.append(score*100)
+
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")

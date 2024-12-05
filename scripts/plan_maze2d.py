@@ -66,6 +66,7 @@ policy = Policy(diffusion, dataset.normalizer)
 
 print(f"{args.diffusion_epoch}")
 print(args.savepath)
+scores = []
 #---------------------------------- main loop ----------------------------------#
 for i in range(n_samples):
 
@@ -193,3 +194,6 @@ for i in range(n_samples):
     json_data = {'score': score, 'step': t, 'return': total_reward, 'term': terminal,
         'epoch_diffusion': diffusion_experiment.epoch}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
+    scores.append(score*100)
+
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")

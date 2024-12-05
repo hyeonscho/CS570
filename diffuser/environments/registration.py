@@ -30,7 +30,9 @@ ENVIRONMENT_SPECS = (
             'ref_min_score': 3.28,
             'ref_max_score': 310.1,
             # 'dataset_url': 'file:///data/datasets/d4rl/maze2d-xxlarge-sparse-v1.hdf5'
-            'dataset_url':'http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5'
+            'dataset_url': 'file:///root/diffuser_chain_hd/maze2d-xxlarge-v1-sparse.hdf5'
+            # 'dataset_url': 'file:///home/hany/repos/research/docker_wrapper/diffuser_chain_hd/maze2d-xxlarge-v1-sparse.hdf5'
+            # 'dataset_url':'http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5'
         }
     }
 

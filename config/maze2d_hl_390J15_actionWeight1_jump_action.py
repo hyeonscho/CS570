@@ -1,3 +1,4 @@
+# it is exactly the same as action_weight=10 as the action weight here does not matter
 import socket
 
 from diffuser.utils import watch
@@ -37,7 +38,7 @@ base = {
         "diffusion": "models.GaussianDiffusion",
         "horizon": 255,
         "jump": 15,
-        "jump_action": "none",
+        "jump_action": 1,
         "condition": True,
         "n_diffusion_steps": 256,
         "action_weight": 10,
@@ -60,7 +61,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion/",
+        "prefix": "diffusion_jump_action/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -85,7 +86,7 @@ base = {
         ## diffusion model
         "horizon": 255,
         "jump": 15,
-        "jump_action": "none",
+        "jump_action": 1,
         "attention": False,
         "condition": True,
         "kernel_size": 5,
@@ -103,7 +104,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffusion_jump_action/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest",
     },
 }
@@ -139,20 +140,6 @@ maze2d_large_v1 = {
     },
     "plan": {
         "horizon": 390,
-        "n_diffusion_steps": 256,
-    },
-}
-
-maze2d_xxlarge_v1 = {
-    "diffusion": {
-        "max_path_length": 300000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 780,
         "n_diffusion_steps": 256,
     },
 }

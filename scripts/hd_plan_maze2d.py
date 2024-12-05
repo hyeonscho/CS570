@@ -99,6 +99,8 @@ track_action = []
 
 print(f"{hl_args.diffusion_epoch}")
 print(hl_args.savepath)
+
+scores = []
 for i in range(n_samples):
     observation = env_eval.reset()
     
@@ -200,3 +202,6 @@ for i in range(n_samples):
         "term": terminal,
     }
     json.dump(json_data, open(json_path, "w"), indent=2, sort_keys=True)
+    scores.append(score*100)
+
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")

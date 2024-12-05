@@ -1,3 +1,4 @@
+# That is not diffuser => that is diffuser w/o modeling the actions
 import socket
 
 from diffuser.utils import watch
@@ -139,6 +140,20 @@ maze2d_large_v1 = {
     },
     "plan": {
         "horizon": 384,
+        "n_diffusion_steps": 256,
+    },
+}
+
+maze2d_xxlarge_v1 = {
+    "diffusion": {
+        "max_path_length": 300000,
+        "horizon": 780,
+        "n_diffusion_steps": 256,
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
+    },
+    "plan": {
+        "horizon": 780,
         "n_diffusion_steps": 256,
     },
 }

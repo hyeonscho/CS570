@@ -106,7 +106,7 @@ if __name__ == "__main__":
     
     # configs += ['config.maze2d_390_actionWeight1']
 
-    configs += ['config.maze2d_hmd_400_21']
+    configs += ['config.maze2d_hmd_400_21', 'config.maze2d_hmd_400_21_jumpAct1_actionW1']
     # configs += ['config.maze2d_hmd_300', 'config.maze2d_hmd_400', 'config.maze2d_hmd_500']
 
     for cfg in configs:

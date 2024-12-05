@@ -36,7 +36,7 @@ base = {
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
         "horizon": 255,
-        "jump": 15,
+        "jump": 26,
         "jump_action": "none",
         "condition": True,
         "n_diffusion_steps": 256,
@@ -148,11 +148,11 @@ maze2d_xxlarge_v1 = {
         "max_path_length": 300000,
         "horizon": 780,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
+        "upsample_k": (3, 3, 4),
+        "downsample_k": (3, 3, 4),
     },
     "plan": {
-        "horizon": 780,
+        "horizon": 390,
         "n_diffusion_steps": 256,
     },
 }

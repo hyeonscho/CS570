@@ -35,18 +35,18 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "horizon": 27,
+        "jump": 1,
+        "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "action_weight": 10,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (2, 2, 4, 8),
-        "upsample_k": (3, 3, 3),
-        "downsample_k": (3, 3, 3),
+        "dim_mults": (1, 4, 8),
+        "upsample_k": (4, 4),
+        "downsample_k": (4, 4),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
@@ -83,19 +83,18 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
-        "attention": False,
+        "horizon": 16,
+        "jump": 1,
+        "jump_action": False,
         "condition": True,
         "kernel_size": 5,
         "dim": 32,
-        "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "normalizer": "LimitsNormalizer",
-        "logbase": logbase,
         ## serialization
+        "logbase": logbase,
         "vis_freq": 10,
+        "logbase": "/common/users/cc1547/projects/diffuser/logs",
         "prefix": "plans/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
@@ -117,42 +116,10 @@ base = {
         large: 600
 """
 
-maze2d_umaze_v1 = {
-    "diffusion": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 4, 4),
-    },
-    "plan": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-    },
-}
-
-maze2d_large_v1 = {
-    "diffusion": {
-        "horizon": 390,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 3, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 390,
-        "n_diffusion_steps": 256,
-    },
-}
-
 maze2d_xxlarge_v1 = {
     "diffusion": {
         "max_path_length": 300000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 780,
-        "n_diffusion_steps": 256,
+        "upsample_k": (4, 3),
+        "downsample_k": (3, 4),
     },
 }

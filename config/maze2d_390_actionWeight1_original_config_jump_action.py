@@ -8,7 +8,7 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", ""),
+    ("prefix", "diffuser"),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
@@ -36,15 +36,15 @@ base = {
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
         "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "jump": 1,
+        "jump_action": 1,
         "condition": True,
         "n_diffusion_steps": 256,
-        "action_weight": 10,
+        "action_weight": 1,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (2, 2, 4, 8),
+        "dim_mults": (1, 4, 8),
         "upsample_k": (3, 3, 3),
         "downsample_k": (3, 3, 3),
         "kernel_size": 5,
@@ -60,7 +60,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion/",
+        "prefix": "diffuserdiffusion_actW1_jump_action/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -84,8 +84,8 @@ base = {
         "device": "cuda",
         ## diffusion model
         "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "jump": 1,
+        "jump_action": 1,
         "attention": False,
         "condition": True,
         "kernel_size": 5,
@@ -96,15 +96,15 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans/release",
+        "prefix": "plans_actW1_jump_action/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
-        "diffusion_epoch": "latest",
+        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_epoch": "latest", #1000000,
     },
 }
 
@@ -132,13 +132,13 @@ maze2d_umaze_v1 = {
 
 maze2d_large_v1 = {
     "diffusion": {
-        "horizon": 390,
+        "horizon": 384,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 3, 4),
-        "downsample_k": (4, 3, 3),
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
     },
     "plan": {
-        "horizon": 390,
+        "horizon": 384,
         "n_diffusion_steps": 256,
     },
 }
@@ -148,8 +148,8 @@ maze2d_xxlarge_v1 = {
         "max_path_length": 300000,
         "horizon": 780,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
     },
     "plan": {
         "horizon": 780,

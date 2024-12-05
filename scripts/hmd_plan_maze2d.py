@@ -88,6 +88,7 @@ print(f"pairs: {pairs}")
 
 policy = HMDPolicy(diffusion, dataset.normalizer, classifier, pairs, jumps, args.short_seq_len)
 
+scores = []
 #---------------------------------- main loop ----------------------------------#
 for i in range(n_samples):
 
@@ -229,3 +230,6 @@ for i in range(n_samples):
     json_data = {'score': score, 'step': t, 'return': total_reward, 'term': terminal,
         'epoch_diffusion': diffusion_experiment.epoch, 'levels': levels}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
+    scores.append(score*100)
+
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")

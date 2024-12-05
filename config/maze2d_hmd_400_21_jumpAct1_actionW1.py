@@ -11,7 +11,10 @@ diffusion_args_to_watch = [
     ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J"),
+    ("jump_action", "JA"),
+    ("action_weight", "AW"),
 ]
 
 plan_args_to_watch = [
@@ -25,8 +28,12 @@ plan_args_to_watch = [
     ("batch_size", "b"),
     ##
     ("conditional", "cond"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J"),
     ("restricted_pd", "rpd"),
+    ("jump_action", "JA"),
+    ("action_weight", "AW"),
+
 ]
 
 logbase = "logs"
@@ -34,24 +41,24 @@ base = {
     "diffusion": {
         ## model
         "model": "models.TemporalUnet",
-        "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
+        "horizon": 400,
+        # "jump": 15,
+        "jump_action": 1,
         "condition": True,
         "n_diffusion_steps": 256,
-        "action_weight": 10,
+        "action_weight": 1,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (2, 2, 4, 8),
+        "dim_mults": (1, 4, 8),
         "upsample_k": (3, 3, 3),
         "downsample_k": (3, 3, 3),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDataset",
+        "loader": "datasets.GoalDatasetHMD",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
@@ -60,7 +67,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion/",
+        "prefix": "diffusion_hmd/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -78,14 +85,22 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
+        
+        "jumps": [1, 20],
+        "short_seq_len": 21,
+        "level_dim": None,
     },
     "plan": {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
-        "jump": 15,
-        "jump_action": "none",
+        "horizon": 400,
+        # "jump": 15,
+        "jumps": [1, 20],
+        "short_seq_len": 21,
+        "level_dim": None,
+        "jump_action": 1,
+        "action_weight": 1,
         "attention": False,
         "condition": True,
         "kernel_size": 5,
@@ -96,15 +111,19 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans/release",
+        "prefix": "plans_hmd/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_JA{jump_action}_AW{action_weight}",
         "diffusion_epoch": "latest",
+
+        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "classifier_epoch": "latest"#"latest", #400000#
+
     },
 }
 
@@ -132,27 +151,20 @@ maze2d_umaze_v1 = {
 
 maze2d_large_v1 = {
     "diffusion": {
-        "horizon": 390,
+        "horizon": 400,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 3, 4),
-        "downsample_k": (4, 3, 3),
-    },
-    "plan": {
-        "horizon": 390,
-        "n_diffusion_steps": 256,
-    },
-}
+        "upsample_k": (3, 3),
+        "downsample_k": (3, 3),
+        
+        # original of HD
+        # "upsample_k": (3, 3, 4),
+        # "downsample_k": (4, 3, 3),
 
-maze2d_xxlarge_v1 = {
-    "diffusion": {
-        "max_path_length": 300000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
+        # "upsample_k": (4, 4, 4),
+        # "downsample_k": (4, 3, 3),
     },
     "plan": {
-        "horizon": 780,
+        "horizon": 400,
         "n_diffusion_steps": 256,
     },
 }

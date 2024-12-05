@@ -94,7 +94,7 @@ base = {
         ## serialization
         "logbase": logbase,
         "vis_freq": 10,
-        "logbase": "/common/users/cc1547/projects/diffuser/logs",
+        # "logbase": "/common/users/cc1547/projects/diffuser/logs",
         "prefix": "plans/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
@@ -115,3 +115,9 @@ base = {
         medium: 250
         large: 600
 """
+
+maze2d_xxlarge_v1 = {
+    "diffusion": {
+        "max_path_length": 300000,
+    },
+}

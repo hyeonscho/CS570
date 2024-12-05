@@ -136,13 +136,15 @@ class HMDPolicy:
         conditions = self._format_conditions(conditions, batch_size)
         
         levels = self.level_pairs[level]
-        
+        # from diffuser.utils.debug import debug as debug_fn
+        # debug_fn()
+
         if len(levels) > 1:
             # call_two_levels
             hl_samples = self.call_diffuser(levels[-1], conditions, batch_size, **kwargs)
             # hl_samples is normalized
             # samples = utils.to_np(hl_samples)[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part
-            samples = hl_samples[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part
+            samples = hl_samples[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part and action part
             
             
             B, M = samples.shape[:2] # 1, 10, D
@@ -185,7 +187,7 @@ class HMDPolicy:
         # if debug:
         act_dim = self.action_dim
         obs_dim = self.diffusion_model.observation_dim
-        normed_observations = sample[:, :, act_dim : act_dim + obs_dim]
+        normed_observations = sample #[:, :, act_dim : act_dim + obs_dim]
         observations = self.normalizer.unnormalize(normed_observations, "observations")
 
         # if deltas.shape[-1] < observation.shape[-1]:
@@ -202,6 +204,7 @@ class HMDPolicy:
         return action, trajectories
 
 
+# HMD w/ learanble level token
 class HMDPolicy2:
     def __init__(self, diffusion_model, normalizer, level_pairs, jumps, short_seq_len):
         self.diffusion_model = diffusion_model
@@ -269,7 +272,7 @@ class HMDPolicy2:
         # if debug:
         act_dim = self.action_dim
         obs_dim = self.diffusion_model.observation_dim
-        normed_observations = sample[:, :, act_dim : act_dim + obs_dim]
+        normed_observations = sample#[:, :, act_dim : act_dim + obs_dim]
         observations = self.normalizer.unnormalize(normed_observations, "observations")
 
         # if deltas.shape[-1] < observation.shape[-1]:

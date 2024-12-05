@@ -13,6 +13,7 @@ from math import pi
 import h5py
 from tqdm import tqdm
 from d4rl.pointmaze import maze_model
+from diffuser.utils.debug import debug
 
 Batch = namedtuple("Batch", "trajectories conditions")
 ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
@@ -127,13 +128,18 @@ class SequenceDatasetHMD(torch.utils.data.Dataset):
         levels = np.eye(len(self.jumps), dtype=observations.dtype)[jump_idx] # one-hot encoding
 
         conditions = self.get_conditions(observations)
+        reshape = lambda x: x.reshape([x.shape[0] // self.jump, self.jump] + list(x.shape[1:]))
         if self.jump_action == "none":
             trajectories = observations
         else:
-            raise NotImplementedError("jump_action != none")
-            actions = self.fields.normed_actions[path_ind, start:end].reshape(
-                -1, self.jump * self.action_dim
-            )
+            # raise NotImplementedError("jump_action != none")
+            # debug()
+            actions = self.fields.normed_actions[path_ind, start:end]
+            actions = reshape(actions)[:, :self.jump_action]
+            actions = actions.reshape(actions.shape[0], -1)
+            # From HD:
+            # padd with all the actions in the jump sequence
+            # actions = self.fields.normed_actions[path_ind, start:end].reshape(-1, self.jump * self.action_dim)
             trajectories = np.concatenate([actions, observations], axis=-1)
         # batch = Batch(trajectories, conditions)
         batch = LevelBatch(trajectories, conditions, levels)
