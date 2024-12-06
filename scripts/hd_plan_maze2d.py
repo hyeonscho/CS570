@@ -76,6 +76,7 @@ hl_diffusion_experiment = utils.load_diffusion(
 )
 hl_diffusion = hl_diffusion_experiment.ema
 dataset = hl_diffusion_experiment.dataset
+renderer = hl_diffusion_experiment.renderer
 hl_policy = Policy(hl_diffusion, dataset.normalizer)
 
 
@@ -135,6 +136,7 @@ for i in range(n_samples):
         ],
         axis=1,
     )
+    plan = ll_samples
     ll_sequence = ll_samples[0]
     total_reward = []
     action_list = []
@@ -188,6 +190,8 @@ for i in range(n_samples):
                 )
                 break
             observation = next_observation
+    plan_rollout = [np.array(plan)[0], np.array(rollout)]
+    renderer.composite(join(hl_args.savepath, f'plan_rollout{i}.png'), plan_rollout, ncol=2)
 
     rollouts.append(rollout)
     total_rewards.append(total_reward)
