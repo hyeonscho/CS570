@@ -105,7 +105,7 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd/release",
+        "prefix": "plans_hmd_bigger_model/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,

@@ -97,7 +97,7 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans/release",
+        "prefix": "plans_jump_action/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,

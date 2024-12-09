@@ -1,3 +1,4 @@
+# problematic due to the dictionary of the conditions for some reason, it is not working for the dataloader
 import socket
 
 from diffuser.utils import watch
@@ -53,7 +54,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDatasetHMD",
+        "loader": "datasets.GoalDatasetHMDMultiscale",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
@@ -62,7 +63,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd/",
+        "prefix": "diffusion_hmd_test/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -81,8 +82,8 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 10, 15, 20],
-        "short_seq_len": 16,
+        "jumps": [1, 1, 1, 10, 15, 20],
+        "short_seq_len": 21,
         "level_dim": None,
     },
     "plan": {
@@ -91,7 +92,7 @@ base = {
         ## diffusion model
         "horizon": 400,
         # "jump": 15,
-        "jumps": [1, 20],
+        "jumps": [1, 1, 1, 10, 15, 20],
         "short_seq_len": 21,
         "level_dim": None,
         "jump_action": "none",
@@ -112,7 +113,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "diffusion_loadpath": "f:diffusion_hmd_test/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "diffusion_epoch": "latest",
 
         "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
