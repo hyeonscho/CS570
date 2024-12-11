@@ -139,9 +139,9 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         self.jump = self.jumps[jump_idx]
         
         random_condition_masking = None
-        # if self.jump == 1:
-        #     random_condition_masking = np.random.randint(0, len(self.jumps_wo_ll))
-        #     random_condition_masking = int(self.jumps_wo_ll[random_condition_masking])
+        if self.jump == 1:
+            random_condition_masking = np.random.randint(0, len(self.jumps_wo_ll))
+            random_condition_masking = int(self.jumps_wo_ll[random_condition_masking])
             
             
         observations = self.fields.normed_observations[path_ind, start:end][
@@ -178,6 +178,19 @@ class GoalDatasetHMDMultiscale(SequenceDatasetHMDMultiscale):
             0: observations[0],
             end: observations[end],
         }
+
+class GoalDatasetHMDMultiscale2(SequenceDatasetHMDMultiscale):
+    def get_conditions(self, observations, end=None):
+        """
+        condition on both the current observation and the last observation in the plan
+        """
+        end = self.short_seq_len-1 if end is None else end
+        return {
+            0: observations[0],
+            'key': np.full_like(observations[0], end),
+            'value': observations[end],
+        }
+
 
 
 class RandomGoalDatasetHMDMultiscale(SequenceDatasetHMDMultiscale):
