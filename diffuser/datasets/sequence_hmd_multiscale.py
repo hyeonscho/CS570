@@ -14,6 +14,7 @@ import h5py
 from tqdm import tqdm
 from d4rl.pointmaze import maze_model
 from diffuser.utils.debug import debug
+import re
 
 Batch = namedtuple("Batch", "trajectories conditions")
 ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
@@ -35,6 +36,10 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         jump_action=False,
         short_seq_len=1,
         make_multi_indices=True,
+        use_stitched_data=False,
+        use_short_data=False,
+        max_round=-1,
+
     ):
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
         self.env_name = env
@@ -48,8 +53,33 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         self.jumps = jumps
         self.jump_action = jump_action
         fields = ReplayBuffer(max_n_episodes, max_path_length, termination_penalty)
-        for i, episode in enumerate(itr):
-            fields.add_path(episode)
+        if use_stitched_data:
+            parent_data_file = "/root/diffuser_chain_hd/data/"
+            if use_short_data:
+                # I need to postprocess it first
+                print("Using the short dataset")
+                data_file = os.path.join(parent_data_file, f"{self.env_name}-base-overlapped.pkl")
+                _preprocess_fn = get_preprocess_fn(['postprocess_base'], env)
+                itr = sequence_dataset(env, _preprocess_fn, load_path=data_file, use_final_timestep=False)
+                for i, episode in enumerate(itr):
+                    fields.add_path(episode)
+            print("Using the stitched dataset")
+            data_file = os.path.join(parent_data_file, f"{self.env_name}-linear-round_{max_round}-postprocess.pkl")
+            pattern = r"round_(\d+)"
+            match = re.search(pattern, data_file)
+            last_round_num = int(match.group(1))
+            _preprocess_fn = get_preprocess_fn(['postprocess_stitched'], env)
+            for r in range(1, last_round_num + 1):
+                aug_data_file_round_r = data_file.replace(f"round_{last_round_num}", f"round_{r}")
+                print(f"Loading {aug_data_file_round_r}")
+                aug_iter = sequence_dataset(env, _preprocess_fn, aug_data_file_round_r, use_final_timestep=False)
+                for i, episode in enumerate(aug_iter):
+                    fields.add_path(episode)
+        else:
+            print("Using the original dataset")
+            itr = sequence_dataset(env, self.preprocess_fn, load_path=load_path) # that is the original dataset
+            for i, episode in enumerate(itr):
+                fields.add_path(episode)
         fields.finalize()
         self.fields = fields
 

@@ -2,6 +2,8 @@ import os
 import collections
 import numpy as np
 import gym
+import h5py
+import pickle
 import pdb
 
 from contextlib import (
@@ -39,8 +41,43 @@ def load_environment(name):
     env.name = name
     return env
 
+
+
+def get_keys(h5file):
+    keys = []
+
+    def visitor(name, item):
+        if isinstance(item, h5py.Dataset):
+            keys.append(name)
+
+    h5file.visititems(visitor)
+    return keys
+
+def load_h5_data(aug_path):
+    data_dict = {}
+    with h5py.File(aug_path, "r", libver="latest", swmr=True) as dataset_file:
+        for k in get_keys(dataset_file):
+            try:  # first try loading as an array
+                data_dict[k] = dataset_file[k][:]
+            except ValueError as e:  # try loading as a scalar
+                data_dict[k] = dataset_file[k][()]
+
+    return data_dict
+
+
+def load_pkl_data(data_file):
+    with open(data_file, "rb") as fp:
+        ds = pickle.load(fp)
+    return ds
+
 def get_dataset(env, load_path=None):
-    dataset = env.get_dataset(load_path)
+    if load_path is None:
+        dataset = env.get_dataset()
+    else:
+        if "h5" in load_path or "hdf5" in load_path:
+            dataset = load_h5_data(load_path)
+        if "pkl" in load_path:
+            dataset = load_pkl_data(load_path)
 
     # if 'antmaze' in str(env).lower():
     #     ## the antmaze-v0 environments have a variety of bugs
@@ -52,7 +89,7 @@ def get_dataset(env, load_path=None):
 
     return dataset
 
-def sequence_dataset(env, preprocess_fn, load_path=None, dataset=None):
+def sequence_dataset(env, preprocess_fn, load_path=None, dataset=None, use_final_timestep=True):
     """
     Returns an iterator through trajectories.
     Args:
@@ -84,13 +121,14 @@ def sequence_dataset(env, preprocess_fn, load_path=None, dataset=None):
         if use_timeouts:
             final_timestep = dataset['timeouts'][i]
         else:
-            final_timestep = (episode_step == env._max_episode_steps - 1)
+            final_timestep = (episode_step == env.max_episode_steps - 1)
 
-        for k in dataset:
+        # for k in dataset:
+        for k in ["observations", "rewards", "actions", "terminals"]:
             if 'metadata' in k: continue
             data_[k].append(dataset[k][i])
 
-        if done_bool or final_timestep:
+        if done_bool or (use_final_timestep and final_timestep):
             episode_step = 0
             episode_data = {}
             for k in data_:

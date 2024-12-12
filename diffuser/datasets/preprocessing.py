@@ -70,6 +70,42 @@ def add_deltas(env):
     return _fn
 
 
+def postprocess_base(env):
+    def _fn(dataset):
+        dataset["observations"] = dataset["observations"]["observation"]
+        terminations = dataset["terminations"]
+        timeout_steps = np.where(terminations)[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
+            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
+        )
+
+        dataset["terminals"] = dataset["terminations"].copy()
+        dataset["timeouts"] = dataset["terminations"].copy()
+        dataset["rewards"] = dataset["terminations"].copy().astype(np.int32)
+        return dataset
+
+    return _fn
+
+def postprocess_stitched(env):
+    def _fn(dataset):
+        terminations = dataset["terminals"]
+        timeout_steps = np.where(terminations)[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
+            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
+        )
+
+        dataset["timeouts"] = dataset["terminals"]
+        return dataset
+
+    return _fn
+
+
 def maze2d_set_terminals(env):
     env = load_environment(env) if type(env) == str else env
     goal = np.array(env._target) # (7, 9) for large maze

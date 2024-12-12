@@ -1,4 +1,3 @@
-# this is not the original configurations of diffuser -> this does not model the actions jointly
 import socket
 
 from diffuser.utils import watch
@@ -9,10 +8,11 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", "diffuser"),
+    ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
-    ("jump", "J"),
+    ("short_seq_len", "S"),
+    ("jumps", "J")
 ]
 
 plan_args_to_watch = [
@@ -35,9 +35,9 @@ base = {
     "diffusion": {
         ## model
         "model": "models.TemporalUnet",
-        "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
-        "jump": 1,
+        "diffusion": "models.GaussianDiffusionHMDNoLevelWeight",
+        "horizon": 400,
+        # "jump": 15,
         "jump_action": "none",
         "condition": True,
         "n_diffusion_steps": 256,
@@ -52,7 +52,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDataset",
+        "loader": "datasets.GoalDatasetHMDMultiscale",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
@@ -61,7 +61,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion/",
+        "prefix": "diffusion_hmd_classifier/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -79,13 +79,25 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
+        
+        "jumps": [1, 1, 1, 1, 1, 1, 1, 5, 6, 7, 8, 10, 15, 20],
+        "short_seq_len": 21,
+        "level_dim": None,
+
+        "classifier": "models.LevelClassifier",
+        "num_layers": 3,
+        "hidden_dim": 256,
+
     },
     "plan": {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
-        "jump": 1,
+        "horizon": 400,
+        # "jump": 15,
+        "jumps": [1, 1, 1, 1, 1, 1, 1, 5, 6, 7, 8, 10, 15, 20],
+        "short_seq_len": 11,
+        "level_dim": None,
         "jump_action": "none",
         "attention": False,
         "condition": True,
@@ -104,8 +116,8 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
-        "diffusion_epoch": "latest", #1000000,
+        "diffusion_loadpath": "f:diffusion_hmd/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_epoch": "latest",
     },
 }
 
@@ -133,13 +145,15 @@ maze2d_umaze_v1 = {
 
 maze2d_large_v1 = {
     "diffusion": {
-        "horizon": 384,
+        "horizon": 400,
         "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
+        "upsample_k": (4, 3),
         "downsample_k": (3, 3),
+        # "upsample_k": (4, 4, 4),
+        # "downsample_k": (4, 3, 3),
     },
     "plan": {
-        "horizon": 384,
+        "horizon": 400,
         "n_diffusion_steps": 256,
     },
 }

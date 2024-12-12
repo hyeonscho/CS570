@@ -28,6 +28,11 @@ args = Parser().parse_args("diffusion")
 # -----------------------------------------------------------------------------#
 # ---------------------------------- dataset ----------------------------------#
 # -----------------------------------------------------------------------------#
+use_stitched_data = args.use_stitched_data if hasattr(args, "use_stitched_data") else False
+use_short_data = args.use_short_data if hasattr(args, "use_short_data") else False
+max_round = args.max_round if hasattr(args, "max_round") else -1
+# Previous models used only the 10k last episodes -> I do not want to mess up with their training
+max_n_episodes = args.max_n_episodes if hasattr(args, "max_n_episodes") else 10000
 
 dataset_config = utils.Config(
     args.loader,
@@ -40,6 +45,10 @@ dataset_config = utils.Config(
     max_path_length=args.max_path_length,
     jump=args.jump,
     jump_action=args.jump_action,
+    use_stitched_data=use_stitched_data,
+    use_short_data=use_short_data,
+    max_round=max_round,
+    max_n_episodes=max_n_episodes,
 )
 
 render_config = utils.Config(

@@ -8,7 +8,7 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", "diffuser"),
+    ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
@@ -35,18 +35,18 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
+        "horizon": 21,
         "jump": 1,
-        "jump_action": "none",
+        "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 256,
-        "action_weight": 1,
+        "n_diffusion_steps": 128,
+        "action_weight": 10,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
         "dim_mults": (1, 4, 8),
-        "upsample_k": (3, 3, 3),
-        "downsample_k": (3, 3, 3),
+        "upsample_k": (3, 3),
+        "downsample_k": (3, 3),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
@@ -60,7 +60,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "original_diffuser/",
+        "prefix": "stitched_diffusion_hd/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -78,33 +78,37 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
+
+        "use_stitched_data": True,
+        "use_short_data": True,
+        "max_round": 3,
+        "max_n_episodes": 100000,
     },
     "plan": {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
+        "horizon": 21,
         "jump": 1,
-        "jump_action": "none",
-        "attention": False,
+        "jump_action": False,
         "condition": True,
         "kernel_size": 5,
         "dim": 32,
-        "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "normalizer": "LimitsNormalizer",
-        "logbase": logbase,
         ## serialization
+        "logbase": logbase,
         "vis_freq": 10,
-        "prefix": "original_diffuser/release",
+        # "logbase": "/common/users/cc1547/projects/diffuser/logs",
+        "prefix": "plans_stitched_diffusion_hd/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1/H{horizon}_T{n_diffusion_steps}_J{jump}",
-        "diffusion_epoch": "latest", #1000000,
+        "diffusion_loadpath": "f:stitched_diffusion_hd/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_epoch": "latest",
     },
 }
 
@@ -117,28 +121,11 @@ base = {
         large: 600
 """
 
-maze2d_umaze_v1 = {
+maze2d_xxlarge_v1 = {
     "diffusion": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 4, 4),
-    },
-    "plan": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-    },
-}
+        "max_path_length": 300000,
+        "max_round": 7,
+        "max_n_episodes": 100000,
 
-maze2d_large_v1 = {
-    "diffusion": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
     },
 }
