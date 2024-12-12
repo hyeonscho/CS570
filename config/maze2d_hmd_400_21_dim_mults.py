@@ -1,4 +1,3 @@
-# problematic due to the dictionary of the conditions for some reason, it is not working for the dataloader
 import socket
 
 from diffuser.utils import watch
@@ -28,7 +27,7 @@ plan_args_to_watch = [
     ##
     ("conditional", "cond"),
     ("short_seq_len", "S"),
-    ("jumps", "J"),
+    # ("jumps", "J"),
     ("restricted_pd", "rpd"),
 ]
 
@@ -47,14 +46,14 @@ base = {
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (1, 4, 8),
+        "dim_mults": (2, 2, 4, 8),
         "upsample_k": (3, 3, 3),
         "downsample_k": (3, 3, 3),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDatasetHMDMultiscale",
+        "loader": "datasets.GoalDatasetHMD",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
@@ -63,7 +62,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd_test/",
+        "prefix": "diffusion_hmd_dim_mults/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -82,7 +81,7 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 20],
         "short_seq_len": 21,
         "level_dim": None,
     },
@@ -92,7 +91,7 @@ base = {
         ## diffusion model
         "horizon": 400,
         # "jump": 15,
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 20],
         "short_seq_len": 21,
         "level_dim": None,
         "jump_action": "none",
@@ -106,18 +105,18 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd_test/release",
+        "prefix": "plans_hmd_dim_mults/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd_test/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "diffusion_loadpath": "f:diffusion_hmd_dim_mults/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "diffusion_epoch": "latest",
 
         "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
-        "classifier_epoch": "1640000"#"latest", #400000#
+        "classifier_epoch": "latest"#"latest", #400000#
 
     },
 }
@@ -148,8 +147,8 @@ maze2d_large_v1 = {
     "diffusion": {
         "horizon": 400,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 3),
-        "downsample_k": (3, 3),
+        "upsample_k": (4, 3, 3),
+        "downsample_k": (3, 3, 4),
         
         # original of HD
         # "upsample_k": (3, 3, 4),

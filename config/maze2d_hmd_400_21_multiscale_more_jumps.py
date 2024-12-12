@@ -63,7 +63,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffusion_hmd_test/",
+        "prefix": "diffusion_hmd_multiscale/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -82,7 +82,7 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 1, 1, 1, 1, 1, 1, 5, 6, 7, 8, 10, 15, 20],
         "short_seq_len": 21,
         "level_dim": None,
     },
@@ -92,7 +92,7 @@ base = {
         ## diffusion model
         "horizon": 400,
         # "jump": 15,
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 1, 1, 1, 1, 1, 1, 5, 6, 7, 8, 10, 15, 20],
         "short_seq_len": 21,
         "level_dim": None,
         "jump_action": "none",
@@ -106,14 +106,14 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd_test/release",
+        "prefix": "diffusion_hmd_multiscale/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffusion_hmd_test/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "diffusion_loadpath": "f:diffusion_hmd_multiscale/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "diffusion_epoch": "latest",
 
         "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",

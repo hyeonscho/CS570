@@ -52,7 +52,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDatasetHMD",
+        "loader": "datasets.GoalDatasetHMDMultiscale",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],

@@ -173,7 +173,7 @@ class GoalDatasetHMDMultiscale(SequenceDatasetHMDMultiscale):
         """
         condition on both the current observation and the last observation in the plan
         """
-        end = self.short_seq_len-1 if end is None else end
+        end = self.short_seq_len-1
         return {
             0: observations[0],
             end: observations[end],
