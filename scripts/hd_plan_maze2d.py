@@ -195,7 +195,6 @@ for i in range(n_samples):
 
     rollouts.append(rollout)
     total_rewards.append(total_reward)
-    scores.append(env_eval.get_normalized_score(sum(total_reward)))
 
     ## save result as a json file
     json_path = join(hl_args.savepath, f"idx{i}_rollout.json")
