@@ -95,6 +95,8 @@ base = {
 
     },
     "plan": {
+        "action_weight": 10,
+        "max_round": 3,
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
@@ -121,10 +123,10 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:stitched_diffuser_diffuser/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "diffusion_loadpath": "f:stitched_hmd/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}",
         "diffusion_epoch": "latest",
 
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "classifier_loadpath": "f:diffusion_hmd_stitched_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "classifier_epoch": "latest"#"latest", #400000#
 
     },
@@ -185,6 +187,8 @@ maze2d_xxlarge_v1 = {
         "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
     },
     "plan": {
+        "max_round": 7,
+        "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

@@ -28,7 +28,7 @@ plan_args_to_watch = [
     ##
     ("conditional", "cond"),
     ("short_seq_len", "S"),
-    # ("jumps", "J"),
+    ("jumps", "J"),
     ("restricted_pd", "rpd"),
 ]
 
@@ -106,7 +106,7 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_hmd/release",
+        "prefix": "plans_hmd_test2/release_multiscale2",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,

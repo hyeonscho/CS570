@@ -1,5 +1,6 @@
 # That is not diffuser => that is diffuser w/o modeling the actions
 # This gives performance better than diffuser
+# action_weight = 1 is useless here as jump_action = "none"
 import socket
 
 from diffuser.utils import watch

@@ -1,3 +1,4 @@
+# Original diffuser
 import socket
 
 from diffuser.utils import watch

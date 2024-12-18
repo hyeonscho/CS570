@@ -35,6 +35,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         use_stitched_data=False,
         use_short_data=False,
         max_round=-1,
+        stitched_method="linear", # "linear"
     ):
         self.preprocess_fn = get_preprocess_fn(preprocess_fns, env)
         self.env_name = env
@@ -57,7 +58,7 @@ class SequenceDataset(torch.utils.data.Dataset):
                 for i, episode in enumerate(itr):
                     fields.add_path(episode)
             print("Using the stitched dataset")
-            data_file = os.path.join(parent_data_file, f"{self.env_name}-linear-round_{max_round}-postprocess.pkl")
+            data_file = os.path.join(parent_data_file, f"{self.env_name}-{stitched_method}-round_{max_round}-postprocess.pkl")
             pattern = r"round_(\d+)"
             match = re.search(pattern, data_file)
             last_round_num = int(match.group(1))

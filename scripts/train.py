@@ -33,6 +33,7 @@ use_short_data = args.use_short_data if hasattr(args, "use_short_data") else Fal
 max_round = args.max_round if hasattr(args, "max_round") else -1
 # Previous models used only the 10k last episodes -> I do not want to mess up with their training
 max_n_episodes = args.max_n_episodes if hasattr(args, "max_n_episodes") else 10000
+stitched_method = args.stitched_method if hasattr(args, "stitched_method") else "linear" # to enable backward compatibility
 
 dataset_config = utils.Config(
     args.loader,
@@ -49,6 +50,7 @@ dataset_config = utils.Config(
     use_short_data=use_short_data,
     max_round=max_round,
     max_n_episodes=max_n_episodes,
+    stitched_method=stitched_method,
 )
 
 render_config = utils.Config(
