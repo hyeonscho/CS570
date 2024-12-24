@@ -1,4 +1,3 @@
-# Original diffuser
 import socket
 
 from diffuser.utils import watch
@@ -9,10 +8,13 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", "diffuser"),
+    ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
+    ("max_round", "R"),
+    ("stitched_method", ""),
+
 ]
 
 plan_args_to_watch = [
@@ -28,6 +30,8 @@ plan_args_to_watch = [
     ("conditional", "cond"),
     ("jump", "J"),
     ("restricted_pd", "rpd"),
+    ("max_round", "R"),
+    ("stitched_method", ""),
 ]
 
 logbase = "logs"
@@ -36,18 +40,18 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
+        "horizon": 16,
         "jump": 1,
-        "jump_action": 1,
+        "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 256,
-        "action_weight": 1,
+        "n_diffusion_steps": 128,
+        "action_weight": 10,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
         "dim_mults": (1, 4, 8),
-        "upsample_k": (3, 3, 3),
-        "downsample_k": (3, 3, 3),
+        "upsample_k": (4, 4),
+        "downsample_k": (4, 4),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
@@ -55,13 +59,14 @@ base = {
         "loader": "datasets.GoalDataset",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
-        "preprocess_fns": ["maze2d_set_terminals"],
+        # "preprocess_fns": ["maze2d_set_terminals"],
+        "preprocess_fns": [],
         "clip_denoised": True,
         "use_padding": False,
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion_actW1_jump_action_8M/",
+        "prefix": "stitched_diffusion_hd/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -79,33 +84,40 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
+        "use_stitched_data": True,
+        "use_short_data": True,
+        "max_round": 7,
+        "max_n_episodes": 100000,
+        "stitched_method": "linear-4M", # "linear"
+
     },
     "plan": {
+        "stitched_method": "linear-4M", # "linear"
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
+        "horizon": 16,
         "jump": 1,
-        "jump_action": 1,
-        "attention": False,
+        "jump_action": False,
         "condition": True,
         "kernel_size": 5,
         "dim": 32,
-        "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "normalizer": "LimitsNormalizer",
-        "logbase": logbase,
         ## serialization
+        "logbase": logbase,
         "vis_freq": 10,
-        "prefix": "plans_actW1_jump_action_8M/release",
+        # "logbase": "/common/users/cc1547/projects/diffuser/logs",
+        "prefix": "plans_stitched_diffusion_hd/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action_8M/H{horizon}_T{n_diffusion_steps}_J{jump}",
-        "diffusion_epoch": "latest", #1000000,
+        "diffusion_loadpath": "f:stitched_diffusion_hd/H{horizon}_T{n_diffusion_steps}_J{jump}_R{max_round}_{stitched_method}",
+        "diffusion_epoch": "latest",
+        "max_round": 7,
     },
 }
 
@@ -118,42 +130,10 @@ base = {
         large: 600
 """
 
-maze2d_umaze_v1 = {
-    "diffusion": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 4, 4),
-    },
-    "plan": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-    },
-}
-
-maze2d_large_v1 = {
-    "diffusion": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-    },
-}
-
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_path_length": 300000,
-        "horizon": 900, # 780, 900
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 900,  # 780, 900
-        "n_diffusion_steps": 256,
+        "max_path_length": 3000,
+        "max_round": 7,
+        "max_n_episodes": 100000,
     },
 }

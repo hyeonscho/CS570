@@ -20,6 +20,7 @@ ENVIRONMENT_SPECS = (
     },
     
     {
+        # can be solved under 600 steps
         'id':'maze2d-xxlarge-v1',
         'entry_point':'d4rl.pointmaze:MazeEnv',
         'max_episode_steps':1300,

@@ -117,7 +117,7 @@ base = {
         "diffusion_epoch": "latest",
 
         "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
-        "classifier_epoch": "1640000"#"latest", #400000#
+        "classifier_epoch": "latest", #400000#
 
     },
 }
