@@ -131,7 +131,7 @@ base = {
         "diffusion_loadpath": "f:stitched_hmd_multiscale/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest",
 
-        "classifier_loadpath": "f:diffusion_hmd_stitched_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "classifier_loadpath": "f:diffusion_hmd_stitched_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
         "classifier_epoch": "latest"#"latest", #400000#
 
     },

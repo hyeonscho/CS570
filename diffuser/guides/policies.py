@@ -210,6 +210,7 @@ class HMDPolicyMultiscale2(HMDPolicy):
         conditions = self._format_conditions(conditions, batch_size)
         
         levels = self.level_pairs[level]
+        
         # from diffuser.utils.debug import debug as debug_fn
         # debug_fn()
 
@@ -221,35 +222,49 @@ class HMDPolicyMultiscale2(HMDPolicy):
             samples = hl_samples[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part and action part
             
             
-            B, M = samples.shape[:2] # 1, 10, D
+            B, M, D = samples.shape # 1, 10, D
             # ll_conditions = np.stack([samples[:, :-1], samples[:, 1:]], axis=2)
-            ll_conditions = torch.stack([samples[:, :-1], samples[:, 1:]], dim=2)
-            ll_conditions = ll_conditions.reshape(B * (M - 1), 2, -1)
+            _ll_conditions = torch.stack([samples[:, :-1], samples[:, 1:]], dim=2)
+            _ll_conditions = _ll_conditions.reshape(B * (M - 1), 2, -1)
+            # self.jumps[levels[-1]] # 20, 15, 10
+            new_seq_len = self.jumps[levels[-1]]
             ll_conditions = {
-                0: ll_conditions[:, 0],
-                self.short_seq_len - 1: ll_conditions[:, -1],
+                0: _ll_conditions[:, 0],
+                new_seq_len: _ll_conditions[:, -1],
             }
+            # ll_conditions = {**ll_conditions, **{i: _ll_conditions[:, -1] for i in range(new_seq_len, min(new_seq_len+3, self.short_seq_len))}}
 
+            # new_seq_len = self.short_seq_len-1
+            
+            # more conditions -> not improving the performance -> it is decreasing it
+            # ll_conditions = {**ll_conditions, **{i: _ll_conditions[:, -1] for i in range(new_seq_len, self.short_seq_len)}}
+            
+            # variable horizon planning -> giving errors -> need more changes
+            # h = self.jumps[levels[-1]]+1
+            # ex = (1-(h%2)) if self.short_seq_len%2 else (h%2)
+            # samples = self.call_diffuser(levels[-2], ll_conditions, batch_size, horizon=h+ex, **kwargs)
+            
             samples = self.call_diffuser(levels[-2], ll_conditions, batch_size, **kwargs)
             samples = utils.to_np(samples)[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part
             # samples = self.normalizer.unnormalize(samples.copy(), 'observations')  
-
-            samples = samples.reshape(B, (M - 1), self.short_seq_len, -1)
-            first_first_segment = samples[:, 0, :1] # take the first of the first segment
-            rest_other_segments = samples[:, :, 1:].reshape(B, (M - 1) * (self.short_seq_len-1), -1) # take the rest of each other segments except first
             # TODO:
             # cut the trajectories into short_seq_len=self.jumps[levels[-1]] lengthts
+            samples = samples[:, :new_seq_len+1]
+            samples = samples.reshape(B, (M - 1), new_seq_len+1, -1)
+            first_first_segment = samples[:, 0, :1] # take the first of the first segment
+            rest_other_segments = samples[:, :, 1:].reshape(B, (M - 1) * (new_seq_len), -1) # take the rest of each other segments except first
             
             # print(f"samples: {samples.shape}") # 1, 10, 11, D
             # print(f"first_first_segment: {first_first_segment.shape}, rest_other_segments: {rest_other_segments.shape}")
             sample = np.concatenate([first_first_segment, rest_other_segments],axis=1)
+            assert sample.shape[-1] == D
             # sample = samples[0]
             # return ll_sequence
         else:
-            # call_one_level
+            # call_one_level the low-level directly
             sample = self.call_diffuser(levels[0], conditions, batch_size, **kwargs)
             sample = utils.to_np(sample)[:, :, self.action_dim:self.action_dim+self.obs_dim] # remove the level predicition part
-
+        
         # ## extract action [ batch_size x horizon x transition_dim ]
         # if self.action_dim != 0:
         #     actions = sample[:, :, : self.action_dim]
@@ -276,7 +291,7 @@ class HMDPolicyMultiscale2(HMDPolicy):
         # next_observations = observation_np + deltas.cumsum(axis=1)
         # ## [ batch_size x (horizon + 1) x observation_dim ]
         # observations = np.concatenate([observation_np[:,None], next_observations], axis=1)
-
+        print(observations.shape)
         trajectories = TrajectoriesLevels(actions, observations, levels)
         return action, trajectories
 

@@ -97,7 +97,7 @@ base = {
     },
     "plan": {
         "max_round": 0,
-        "stitched_method": "", # "linear"
+        "stitched_method": "original", # "linear"
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model

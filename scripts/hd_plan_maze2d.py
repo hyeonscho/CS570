@@ -102,6 +102,7 @@ print(f"{hl_args.diffusion_epoch}")
 print(hl_args.savepath)
 
 scores = []
+success_rate = []
 for i in range(n_samples):
     observation = env_eval.reset()
     
@@ -206,5 +207,8 @@ for i in range(n_samples):
     }
     json.dump(json_data, open(json_path, "w"), indent=2, sort_keys=True)
     scores.append(score*100)
+    success_rate.append(sum(total_reward)>0)
 
-print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")
+_success_rate = np.sum(success_rate)/n_samples*100
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f} ({_success_rate:.2f}%)")
+print(f"succes rate: {_success_rate:.2f}%")

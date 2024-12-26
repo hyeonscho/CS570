@@ -96,7 +96,7 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 16,
+        "horizon": 21,
         "jump": 1,
         "jump_action": False,
         "condition": True,

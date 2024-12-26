@@ -58,7 +58,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDatasetHMDMultiscale2",
+        "loader": "datasets.GoalDatasetHMDMultiscale",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         # "preprocess_fns": ["maze2d_set_terminals"],
@@ -68,7 +68,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "stitched_hmd_multiscale2/",
+        "prefix": "stitched_hmd_classifier/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -96,45 +96,9 @@ base = {
         "max_n_episodes": 100000,
         "stitched_method": "linear-non_straight", # "linear"
 
-
-    },
-    "plan": {
-        "stitched_method": "linear-non_straight", # "linear"
-        "action_weight": 10,
-        "max_round": 7,
-        "batch_size": 1,
-        "device": "cuda",
-        ## diffusion model
-        "horizon": 400,
-        # "jump": 15,
-        "jumps": [1, 1, 1, 10, 15, 20],
-        "short_seq_len": 21,
-        "level_dim": None,
-        "jump_action": "none",
-        "attention": False,
-        "condition": True,
-        "kernel_size": 5,
-        "dim": 32,
-        "mask": False,
-        "n_diffusion_steps": 256,
-        "normalizer": "LimitsNormalizer",
-        "logbase": logbase,
-        ## serialization
-        "vis_freq": 10,
-        "prefix": "plans_stitched_hmd_multiscale2/",
-        "exp_name": watch(plan_args_to_watch),
-        "suffix": "0",
-        "conditional": False,
-        "transfer": "none",
-        "restricted_pd": False,
-        ## loading
-        "diffusion_loadpath": "f:stitched_hmd_multiscale2/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
-        "diffusion_epoch": "latest",
-
-        # "classifier_loadpath": "f:stitched_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
-        "classifier_epoch": "latest"#"latest", #400000#
-
+        "classifier": "models.LevelClassifier",
+        "num_layers": 3,
+        "hidden_dim": 256,
     },
 }
 

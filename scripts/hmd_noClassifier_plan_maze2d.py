@@ -92,6 +92,7 @@ policy = HMDPolicy(diffusion, dataset.normalizer, classifier, pairs, jumps, args
 
 #---------------------------------- main loop ----------------------------------#
 scores = []
+success_rate = []
 for i in range(n_samples):
 
     observation = env.reset()
@@ -233,5 +234,8 @@ for i in range(n_samples):
         'epoch_diffusion': diffusion_experiment.epoch, 'levels': levels}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
     scores.append(score*100)
+    success_rate.append(total_reward>0)
 
-print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f}")
+_success_rate = np.sum(success_rate)/n_samples*100
+print(f"{np.mean(scores):.1f} +/- {np.std(scores)/np.sqrt(len(scores)):.2f} ({_success_rate:.2f}%)")
+print(f"succes rate: {_success_rate:.2f}%")
