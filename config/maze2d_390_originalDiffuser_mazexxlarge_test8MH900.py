@@ -144,30 +144,16 @@ maze2d_large_v1 = {
     },
 }
 
-maze2d_clarge_v1 = {
-    "diffusion": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-    },
-}
-
-
-maze2d_xxlarge_v1 = {
+maze2d_xxlarge_v2 = {
     "diffusion": {
         "max_path_length": 300000,
-        "horizon": 900, # 780
+        "horizon": 900, # 780, 900
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
     },
     "plan": {
-        "horizon": 900,  # 780
+        "horizon": 900,  # 780, 900
         "n_diffusion_steps": 256,
     },
 }

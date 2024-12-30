@@ -1,6 +1,9 @@
 # From https://github.com/Farama-Foundation/D4RL/blob/master/scripts/generation/relabel_maze2d_rewards.py
 # python scripts/generation/relabel_maze2d_rewards.py --maze <open/umaze/medium/large> --filename <hdf5 file>
 
+
+# python scripts/generation/relabel_maze2d_rewards.py --maze large --filename maze2d-large-v1.hdf5 --relabel_type sparse
+
 from d4rl.pointmaze import MazeEnv, maze_model
 from d4rl.offline_env import get_keys
 import os

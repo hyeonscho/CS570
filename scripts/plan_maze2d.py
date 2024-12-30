@@ -17,37 +17,27 @@ import diffuser.utils as utils
 
 import argparse
 
-parser = argparse.ArgumentParser("diffuser", add_help=False)
-parser.add_argument("--cfg", type=str)
-parser.add_argument('--rpd', action='store_true')
-args, leftovers = parser.parse_known_args()
-
-cfg = args.cfg
-# I do not know why the parser does not work -> quick solution -> argparse and override
-restricted_pd = args.rpd
-
-
 class Parser(utils.Parser):
-    dataset: str = 'maze2d-large-v1'
-    # config: str = 'config.maze2d_hmdConfig300'
-    config: str = cfg
-    restricted_pd: bool = restricted_pd
+    dataset: str = ''#'maze2d-large-v1'
+    config: str = ''#'config.maze2d_hmdConfig300'
 
 
 #---------------------------------- setup ----------------------------------#
+
 n_samples = 100
 
-args = Parser().parse_args('plan', add_extras=False) # Discovered it later, so had to disable it as I am doing it here, until I test it
+args = Parser().parse_args('plan', add_extras=True)
+print("====================================")
+print("====================================")
+print("====================================")
+print(args.dataset, args.config)
+print("====================================")
+print("====================================")
+print("====================================")
 
-# bad workaround, just for now
-args.restricted_pd =  restricted_pd
-args.savepath = args.savepath.replace('rpdFalse', f'rpd{restricted_pd}')
-args.savepath = args.savepath.replace('rpdTrue', f'rpd{restricted_pd}')
-
+restricted_pd = args.restricted_pd
 
 from diffuser.utils.serialization import mkdir
-print(args.savepath)
-mkdir(args.savepath)
 # logger = utils.Logger(args)
 
 env = datasets.load_environment(args.dataset)

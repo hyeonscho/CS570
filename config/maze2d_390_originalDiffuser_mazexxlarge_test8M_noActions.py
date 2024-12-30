@@ -38,7 +38,7 @@ base = {
         "diffusion": "models.GaussianDiffusion",
         "horizon": 255,
         "jump": 1,
-        "jump_action": 1,
+        "jump_action": "none",
         "condition": True,
         "n_diffusion_steps": 256,
         "action_weight": 1,
@@ -61,7 +61,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion_actW1_jump_action/",
+        "prefix": "diffuserdiffusion_Nojump_action/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -86,7 +86,7 @@ base = {
         ## diffusion model
         "horizon": 255,
         "jump": 1,
-        "jump_action": 1,
+        "jump_action": "none",
         "attention": False,
         "condition": True,
         "kernel_size": 5,
@@ -97,14 +97,14 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_actW1_jump_action/release",
+        "prefix": "plans_Nojump_action/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_Nojump_action/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
     },
 }
@@ -144,30 +144,16 @@ maze2d_large_v1 = {
     },
 }
 
-maze2d_clarge_v1 = {
-    "diffusion": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 384,
-        "n_diffusion_steps": 256,
-    },
-}
-
-
-maze2d_xxlarge_v1 = {
+maze2d_xxlarge_v2 = {
     "diffusion": {
         "max_path_length": 300000,
-        "horizon": 900, # 780
+        "horizon": 780, # 780, 900
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
     },
     "plan": {
-        "horizon": 900,  # 780
+        "horizon": 780,  # 780, 900
         "n_diffusion_steps": 256,
     },
 }

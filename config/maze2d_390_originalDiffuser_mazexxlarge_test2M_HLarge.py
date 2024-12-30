@@ -61,7 +61,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion_actW1_jump_action_8M/",
+        "prefix": "diffuserdiffusion_actW1_jump_action/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -97,14 +97,14 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_actW1_jump_action_8M/release",
+        "prefix": "plans_actW1_jump_action/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action_8M/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
     },
 }
@@ -147,13 +147,13 @@ maze2d_large_v1 = {
 maze2d_xxlarge_v1 = {
     "diffusion": {
         "max_path_length": 300000,
-        "horizon": 900, # 780, 900
+        "horizon": 384,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
     },
     "plan": {
-        "horizon": 900,  # 780, 900
+        "horizon": 384,
         "n_diffusion_steps": 256,
     },
 }
