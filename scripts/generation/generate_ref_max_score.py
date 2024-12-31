@@ -2,7 +2,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import diffuser
 import d4rl
 import gym
@@ -19,12 +19,12 @@ def main():
     parser.add_argument('--num_episodes', type=int, default=100, help='Num samples to collect')
     args = parser.parse_args()
 
-    render_config = utils.Config(
-        "utils.Maze2dRenderer",
-        savepath=("/root/diffuser_chain_hd/scripts/tmp/", "render_config.pkl"),
-        env=args.env_name,
-    )
-    renderer = render_config()
+    # render_config = utils.Config(
+    #     "utils.Maze2dRenderer",
+    #     savepath=("/root/diffuser_chain_hd/scripts/tmp/", "render_config.pkl"),
+    #     env=args.env_name,
+    # )
+    # renderer = render_config()
 
     env = gym.make(args.env_name)
     env.seed(0)
@@ -50,7 +50,7 @@ def main():
             returns += rew
         ravg.append(returns)
         plan_rollout = [np.array(rollout)]
-        renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/tmp', f'plan_rollout{i}_{dones_t[-1]}.png'), plan_rollout, ncol=1) if done else renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/tmp', f'plan_rollout{i}_NA.png'), plan_rollout, ncol=1)
+        # renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/tmp', f'plan_rollout{i}_{dones_t[-1]}.png'), plan_rollout, ncol=1) if done else renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/tmp', f'plan_rollout{i}_NA.png'), plan_rollout, ncol=1)
 
     print(args.env_name, 'returns', np.mean(ravg))
     print(f'min steps to done: {np.min(dones_t)}')

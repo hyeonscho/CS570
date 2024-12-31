@@ -319,6 +319,7 @@ MAZE_BOUNDS = {
     "maze2d-giant-v1": (0, 12, 0, 16),
     "maze2d-xxlarge-v1": (0, 18, 0, 24),
     "maze2d-xxlarge-v2": (0, 18, 0, 24),
+    "maze2d-xxlarge-v3": (0, 18, 0, 24),
 }
 
 
