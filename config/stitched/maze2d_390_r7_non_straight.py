@@ -194,7 +194,7 @@ maze2d_ultra_v1 = {
 maze2d_xxlarge_v1 = {
     "diffusion": {
         "max_path_length": 3000,
-        "horizon": 780,
+        "horizon": 500,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
@@ -202,7 +202,7 @@ maze2d_xxlarge_v1 = {
         "max_n_episodes": 100000,
     },
     "plan": {
-        "horizon": 780,
+        "horizon": 500,
         "n_diffusion_steps": 256,
     },
 }

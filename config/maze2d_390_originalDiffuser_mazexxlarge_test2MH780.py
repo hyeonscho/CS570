@@ -157,3 +157,33 @@ maze2d_xxlarge_v1 = {
         "n_diffusion_steps": 256,
     },
 }
+
+# new layout
+maze2d_xxlargec_v1 = {
+    "diffusion": {
+        "max_path_length": 300000,
+        "horizon": 780, # 780, 900
+        "n_diffusion_steps": 256,
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
+    },
+    "plan": {
+        "horizon": 780,  # 780, 900
+        "n_diffusion_steps": 256,
+    },
+}
+
+# custom trajectories
+maze2d_xxlarge_v3 = {
+    "diffusion": {
+        "max_path_length": 300000,
+        "horizon": 500, # 780, 900
+        "n_diffusion_steps": 256,
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
+    },
+    "plan": {
+        "horizon": 500,  # 780, 900
+        "n_diffusion_steps": 256,
+    },
+}

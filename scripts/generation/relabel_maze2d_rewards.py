@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import diffuser
 
 from diffuser.environments.xxlarge import XXLARGE_MAZE
+from diffuser.environments.xxlarge_c import XXLARGE_MAZE_C
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='SAC-BEAR')
@@ -38,6 +39,8 @@ if __name__ == "__main__":
         maze = maze_model.LARGE_MAZE
     elif args.maze == 'xxlarge':
         maze = XXLARGE_MAZE
+    elif args.maze == 'xxlargec':
+        maze = XXLARGE_MAZE_C
     else:
         raise ValueError('Invalid maze type', args.maze)
     env = MazeEnv(maze, reset_target=False, reward_type='sparse')

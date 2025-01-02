@@ -173,3 +173,16 @@ maze2d_xxlarge_v1 = {
         "n_diffusion_steps": 256,
     },
 }
+
+maze2d_giant_v1 = {
+    "diffusion": {
+        "horizon": 510,
+        "n_diffusion_steps": 256,
+        "upsample_k": (3, 3, 4),
+        "downsample_k": (4, 3, 3),
+    },
+    "plan": {
+        "horizon": 510,
+        "n_diffusion_steps": 256,
+    },
+}

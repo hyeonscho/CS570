@@ -3,6 +3,7 @@ from d4rl.pointmaze.maze_model import LARGE_MAZE
 from .xxlarge import XXLARGE_MAZE
 from .ultra import ULTRA_MAZE
 from .giant import GIANT_MAZE
+from .xxlarge_c import XXLARGE_MAZE_C
 
 ENVIRONMENT_SPECS = (
     {
@@ -52,6 +53,24 @@ ENVIRONMENT_SPECS = (
         }
     },
     
+    {
+        # can be solved under 600 steps
+        'id':'maze2d-xxlargec-v1',
+        'entry_point':'d4rl.pointmaze:MazeEnv',
+        'max_episode_steps':1300,
+        'kwargs':{
+            'maze_spec':XXLARGE_MAZE_C,
+            'reward_type':'sparse',
+            'reset_target': False,
+            'ref_min_score': 3.28,
+            'ref_max_score': 310.1,
+            'dataset_url': 'file:///root/diffuser_chain_hd/data/maze2d-xxlargec-v1-sparse.hdf5'
+            # 'dataset_url': 'file:///home/hany/repos/research/docker_wrapper/diffuser_chain_hd/maze2d-xxlarge-v1-sparse.hdf5'
+            # 'dataset_url':'http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5'
+        }
+    },
+
+    
     # 8M version
     {
         # can be solved under 600 steps
@@ -81,7 +100,7 @@ ENVIRONMENT_SPECS = (
             'reset_target': False,
             'ref_min_score': 3.28,
             'ref_max_score': 310.1,
-            'dataset_url': 'file:///root/diffuser_chain_hd/data/maze2d-xxlarge-<>-v1-sparse.hdf5'
+            'dataset_url': 'file:///root/diffuser_chain_hd/data/maze2d-xxlarge-v3-sparse.hdf5'
             # 'dataset_url': 'file:///home/hany/repos/research/docker_wrapper/diffuser_chain_hd/maze2d-xxlarge-v1-sparse.hdf5'
             # 'dataset_url':'http://rail.eecs.berkeley.edu/datasets/offline_rl/maze2d/maze2d-large-sparse-v1.hdf5'
         }
