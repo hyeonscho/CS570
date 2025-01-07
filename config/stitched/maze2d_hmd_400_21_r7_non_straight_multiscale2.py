@@ -132,8 +132,8 @@ base = {
         "diffusion_loadpath": "f:stitched_hmd_multiscale2/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest",
 
-        # "classifier_loadpath": "f:stitched_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
-        "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "classifier_loadpath": "f:stitched_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
+        # "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "classifier_epoch": "latest"#"latest", #400000#
 
     },
@@ -185,15 +185,14 @@ maze2d_giant_v1 = {
     "diffusion": {
         "horizon": 500,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 3),
-        "downsample_k": (3, 3),
-        "jumps": [1, 1, 1, 1, 1, 6, 10, 15, 20],
-        "short_seq_len": 25,
-
+        "upsample_k": (3, 4),
+        "downsample_k": (4, 3),
+        "jumps": [1, 1, 1, 1, 6, 10, 15, 20],
+        "short_seq_len": 26,
     },
     "plan": {
-        "jumps": [1, 1, 1, 1, 1, 6, 10, 15, 20],
-        "short_seq_len": 25,
+        "jumps": [1, 1, 1, 1, 6, 10, 15, 20],
+        "short_seq_len": 26,
         "horizon": 500,
         "n_diffusion_steps": 256,
     },

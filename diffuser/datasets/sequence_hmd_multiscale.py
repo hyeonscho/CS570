@@ -94,11 +94,13 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         #         self.levels_per_jumps[j] = 
         
         # self.jumps = [1, 1, 1, 10, 15, 20]
+        # TODO: refactor this
         _jumps = list(set(self.jumps))
         assert _jumps[0] == 1 and _jumps[1] > 1
         self.jumps_wo_ll = _jumps[1:]
         self.bins_lengths = [j*self.short_seq_len for j in self.jumps]
         if make_multi_indices:
+            # TODO: refactor this to make it not make redundant indices
             self.indices = [
                 self.make_indices(fields.path_lengths, h) for h in self.bins_lengths
             ]
@@ -130,6 +132,7 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         makes indices for sampling from dataset;
         each index maps to a datapoint
         """
+        print(f"Make indices for H={horizon}")
         indices = []
         for i, path_length in enumerate(path_lengths):
             max_start = min(path_length - 1, self.max_path_length - horizon)

@@ -2,7 +2,7 @@
 Generate "minimum" reference scores by averaging the score for a random
 policy over 100 episodes.
 """
-# python scripts/generate_ref_min_score.py --env_name maze2d-xxlarge-v1
+# python scripts/generation/generate_ref_min_score.py --env_name maze2d-xxlarge-v1
 import os
 import sys
 

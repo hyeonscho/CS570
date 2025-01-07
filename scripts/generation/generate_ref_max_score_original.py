@@ -29,11 +29,11 @@ def main():
     env = gym.make(args.env_name)
     env.seed(0)
     np.random.seed(0)
+    controller = waypoint_controller.WaypointController(env.str_maze_spec)
+    print(env._max_episode_steps)
     ravg = []
     dones_t = []
-    print(env._max_episode_steps)
     for i in range(args.num_episodes):
-        controller = waypoint_controller.WaypointController(env.str_maze_spec)
         s = env.reset()
         returns = 0
         rollout = []
@@ -50,7 +50,7 @@ def main():
             returns += rew
         ravg.append(returns)
         plan_rollout = [np.array(rollout)]
-        # renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/logs/tmp', f'plan_rollout{i}_{dones_t[-1]}.png'), plan_rollout, ncol=1) if done else renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/logs/tmp', f'plan_rollout{i}_NA.png'), plan_rollout, ncol=1)
+        renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/logs/tmp', f'plan_rollout{i}_{dones_t[-1]}.png'), plan_rollout, ncol=1) if done else renderer.composite(os.path.join('/root/diffuser_chain_hd/scripts/logs/tmp', f'plan_rollout{i}_NA.png'), plan_rollout, ncol=1)
 
     print(args.env_name, 'returns', np.mean(ravg))
     print(f'min steps to done: {np.min(dones_t)}')
@@ -59,5 +59,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    

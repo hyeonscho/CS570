@@ -1,5 +1,4 @@
-# maze2d_390_actionWeight1_original_config_jump_action
-
+# Original diffuser
 import socket
 
 from diffuser.utils import watch
@@ -10,13 +9,10 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", ""),
+    ("prefix", "diffuser"),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
-    ("action_weight", "AW"),
-    ("max_round", "R"),
-    ("stitched_method", ""),
 ]
 
 plan_args_to_watch = [
@@ -32,9 +28,6 @@ plan_args_to_watch = [
     ("conditional", "cond"),
     ("jump", "J"),
     ("restricted_pd", "rpd"),
-    ("max_round", "R"),
-    ("stitched_method", ""),
-
 ]
 
 logbase = "logs"
@@ -52,7 +45,7 @@ base = {
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
-        "dim_mults": (1, 4, 8),
+        "dim_mults": (2, 2, 4, 8),
         "upsample_k": (3, 3, 3),
         "downsample_k": (3, 3, 3),
         "kernel_size": 5,
@@ -62,14 +55,13 @@ base = {
         "loader": "datasets.GoalDataset",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
-        # "preprocess_fns": ["maze2d_set_terminals"],
-        "preprocess_fns": [],
+        "preprocess_fns": ["maze2d_set_terminals"],
         "clip_denoised": True,
         "use_padding": False,
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "stitched_diffuser_diffuser/",
+        "prefix": "diffuserdiffusion_actW1_jump_action_dim_mults/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -87,22 +79,13 @@ base = {
         "n_samples": 10,
         "bucket": None,
         "device": "cuda",
-
-        "use_stitched_data": True,
-        "use_short_data": True,
-        "max_round": 7,
-        "max_n_episodes": 100000,
-        # /root/diffuser_chain_hd/data/<environment>-<method>-postprocess.pkl
-        "stitched_method": "linear-non_straight", # "linear"
     },
     "plan": {
-        "stitched_method": "linear-non_straight", # "linear"
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
         "horizon": 255,
         "jump": 1,
-        "action_weight": 1,
         "jump_action": 1,
         "attention": False,
         "condition": True,
@@ -114,17 +97,15 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_stitched_diffuser_diffuser/release",
+        "prefix": "plans_actW1_jump_action/release",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:stitched_diffuser_diffuser/H{horizon}_T{n_diffusion_steps}_J{jump}_AW{action_weight}_R{max_round}_{stitched_method}",
+        "diffusion_loadpath": "f:diffuserdiffuserdiffusion_actW1_jump_action_dim_mults/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
-        
-        "max_round": 7,
     },
 }
 
@@ -163,46 +144,16 @@ maze2d_large_v1 = {
     },
 }
 
-
-maze2d_giant_v1 = {
+maze2d_xxlarge_v2 = {
     "diffusion": {
-        "horizon": 500,
+        "max_path_length": 300000,
+        "horizon": 780, # 780, 900
         "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
+        "upsample_k": (3, 4, 4),
+        "downsample_k": (4, 4, 3),
     },
     "plan": {
-        "horizon": 500,
-        "n_diffusion_steps": 256,
-    },
-}
-
-maze2d_ultra_v1 = {
-    "diffusion": {
-        "horizon": 500,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 500,
-        "n_diffusion_steps": 256,
-    },
-}
-
-
-maze2d_xxlarge_v1 = {
-    "diffusion": {
-        "max_path_length": 3000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-        "max_round": 7,
-        "max_n_episodes": 100000,
-    },
-    "plan": {
-        "horizon": 780,
+        "horizon": 780,  # 780, 900
         "n_diffusion_steps": 256,
     },
 }
