@@ -92,7 +92,7 @@ base = {
         "level_dim": None,
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 10,
+        "max_round": 3,
         "max_n_episodes": 100000,
         "stitched_method": "linear-non_straight", # "linear"
 
@@ -164,7 +164,7 @@ maze2d_giant_v1 = {
 
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_round": 10,
+        "max_round": 3,
         "horizon": 784,
         "n_diffusion_steps": 256,
         "upsample_k": (3, 3),
@@ -173,7 +173,7 @@ maze2d_xxlarge_v1 = {
         "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
     },
     "plan": {
-        "max_round": 10,
+        "max_round": 3,
         "jumps": [1, 1, 1, 1, 1, 1, 6, 10, 15, 20, 24, 28],
         "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
         "horizon": 784,
