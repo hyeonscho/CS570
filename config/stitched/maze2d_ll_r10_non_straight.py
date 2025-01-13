@@ -86,7 +86,7 @@ base = {
         "device": "cuda",
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 7,
+        "max_round": 10,
         "max_n_episodes": 100000,
         "stitched_method": "linear-non_straight", # "linear"
 
@@ -117,7 +117,7 @@ base = {
         ## loading
         "diffusion_loadpath": "f:stitched_diffusion_hd/H{horizon}_T{n_diffusion_steps}_J{jump}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest",
-        "max_round": 7,
+        "max_round": 10,
     },
 }
 

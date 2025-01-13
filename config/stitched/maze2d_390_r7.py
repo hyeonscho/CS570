@@ -16,6 +16,7 @@ diffusion_args_to_watch = [
     ("jump", "J"),
     ("action_weight", "AW"),
     ("max_round", "R"),
+    ("stitched_method", ""),
 ]
 
 plan_args_to_watch = [
@@ -32,6 +33,8 @@ plan_args_to_watch = [
     ("jump", "J"),
     ("restricted_pd", "rpd"),
     ("max_round", "R"),
+    ("stitched_method", ""),
+
 ]
 
 logbase = "logs"
@@ -89,8 +92,11 @@ base = {
         "use_short_data": True,
         "max_round": 7,
         "max_n_episodes": 100000,
+        # /root/diffuser_chain_hd/data/<environment>-<method>-postprocess.pkl
+        "stitched_method": "linear", # "linear"
     },
     "plan": {
+        "stitched_method": "linear", # "linear"
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
@@ -115,7 +121,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:stitched_diffuser_diffuser/H{horizon}_T{n_diffusion_steps}_J{jump}_AW{action_weight}_R{max_round}",
+        "diffusion_loadpath": "f:stitched_diffuser_diffuser/H{horizon}_T{n_diffusion_steps}_J{jump}_AW{action_weight}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest", #1000000,
         
         "max_round": 7,
@@ -157,17 +163,44 @@ maze2d_large_v1 = {
     },
 }
 
+
+maze2d_giant_v1 = {
+    "diffusion": {
+        "horizon": 500,
+        "n_diffusion_steps": 256,
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
+    },
+    "plan": {
+        "horizon": 500,
+        "n_diffusion_steps": 256,
+    },
+}
+
+maze2d_ultra_v1 = {
+    "diffusion": {
+        "horizon": 500,
+        "n_diffusion_steps": 256,
+        "upsample_k": (4, 4),
+        "downsample_k": (3, 3),
+    },
+    "plan": {
+        "horizon": 500,
+        "n_diffusion_steps": 256,
+    },
+}
+
+
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_path_length": 3000,
         "horizon": 780,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
         "max_round": 7,
-        "max_n_episodes": 100000,
     },
     "plan": {
+        "max_round": 7,
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

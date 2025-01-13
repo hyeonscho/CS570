@@ -162,22 +162,21 @@ maze2d_giant_v1 = {
     },
 }
 
-
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_round": 10,
-        "horizon": 784,
+        "max_path_length": 3000,
+        "horizon": 780,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 3),
-        "downsample_k": (3, 3),
-        "jumps": [1, 1, 1, 1, 1, 1, 6, 10, 15, 20, 24, 28],
-        "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
+        "upsample_k": (4, 4),
+        "downsample_k": (4, 4),
+        "max_round": 7,
+        "max_n_episodes": 100000,
+        "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
     },
     "plan": {
-        "max_round": 10,
-        "jumps": [1, 1, 1, 1, 1, 1, 6, 10, 15, 20, 24, 28],
-        "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
-        "horizon": 784,
+        "max_round": 7,
+        "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
+        "horizon": 780,
         "n_diffusion_steps": 256,
     },
 }

@@ -92,7 +92,7 @@ base = {
         "level_dim": None,
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 7,
+        "max_round": 10,
         "max_n_episodes": 100000,
         "stitched_method": "linear-non_straight", # "linear"
 
@@ -101,7 +101,7 @@ base = {
     "plan": {
         "stitched_method": "linear-non_straight", # "linear"
         "action_weight": 10,
-        "max_round": 7,
+        "max_round": 10,
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model

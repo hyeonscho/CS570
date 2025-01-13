@@ -127,3 +127,9 @@ maze2d_xxlarge_v2 = {
         "max_path_length": 300000,
     },
 }
+
+maze2d_xxlargec_v1 = {
+    "diffusion": {
+        "max_path_length": 300000,
+    },
+}
