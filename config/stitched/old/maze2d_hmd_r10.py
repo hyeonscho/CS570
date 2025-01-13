@@ -1,4 +1,3 @@
-# short_seq_len < max_jump
 import socket
 
 from diffuser.utils import watch
@@ -59,7 +58,7 @@ base = {
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDatasetHMDMultiscale2",
+        "loader": "datasets.GoalDatasetHMD",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         # "preprocess_fns": ["maze2d_set_terminals"],
@@ -69,7 +68,7 @@ base = {
         "max_path_length": 40000,
         ## serialization
         "logbase": logbase,
-        "prefix": "stitched_hmd_multiscale2/",
+        "prefix": "stitched_hmd/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -88,27 +87,27 @@ base = {
         "bucket": None,
         "device": "cuda",
         
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 20],
         "short_seq_len": 21,
         "level_dim": None,
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 7,
+        "max_round": 10,
         "max_n_episodes": 100000,
-        "stitched_method": "linear-non_straight", # "linear"
+        "stitched_method": "linear", # "linear"
 
 
     },
     "plan": {
-        "stitched_method": "linear-non_straight", # "linear"
+        "stitched_method": "linear", # "linear"
         "action_weight": 10,
-        "max_round": 7,
+        "max_round": 10,
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
         "horizon": 400,
         # "jump": 15,
-        "jumps": [1, 1, 1, 10, 15, 20],
+        "jumps": [1, 20],
         "short_seq_len": 21,
         "level_dim": None,
         "jump_action": "none",
@@ -122,18 +121,17 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans_stitched_hmd_multiscale2/",
+        "prefix": "plans_stitched_hmd/",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:stitched_hmd_multiscale2/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
+        "diffusion_loadpath": "f:stitched_hmd/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest",
 
-        "classifier_loadpath": "f:stitched_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}_AW{action_weight}_R{max_round}_{stitched_method}",
-        # "classifier_loadpath": "f:diffusion_hmd_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
+        "classifier_loadpath": "f:diffusion_hmd_stitched_classifier/H{horizon}_T{n_diffusion_steps}_S{short_seq_len}_J{jumps}",
         "classifier_epoch": "latest"#"latest", #400000#
 
     },
@@ -185,35 +183,38 @@ maze2d_giant_v1 = {
     "diffusion": {
         "horizon": 500,
         "n_diffusion_steps": 256,
-        "upsample_k": (3, 4),
-        "downsample_k": (4, 3),
-        "jumps": [1, 1, 1, 1, 6, 10, 15, 20],
-        "short_seq_len": 26,
+        "upsample_k": (3, 3),
+        "downsample_k": (3, 3),
+        "jumps": [1, 25],
+        "short_seq_len": 21,
+
     },
     "plan": {
-        "jumps": [1, 1, 1, 1, 6, 10, 15, 20],
-        "short_seq_len": 26,
+        "jumps": [1, 25],
+        "short_seq_len": 21,
         "horizon": 500,
         "n_diffusion_steps": 256,
     },
 }
 
 
+
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_path_length": 3000,
-        "horizon": 780,
+        "jumps": [1, 28],
+        "horizon": 784,
         "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (4, 4),
-        "max_round": 7,
-        "max_n_episodes": 100000,
-        "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
+        "upsample_k": (3, 3),
+        "downsample_k": (3, 3),
+        "max_round": 10,
+        "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
     },
     "plan": {
-        "max_round": 7,
-        "short_seq_len": 40, # 780 / 20 + 1 = 39 + 1 = 40
-        "horizon": 780,
+        "jumps": [1, 28],
+        "max_round": 10,
+        "short_seq_len": 29, # 780 / 28 + 1 = 28 + 1 = 29
+        "horizon": 784,
         "n_diffusion_steps": 256,
     },
 }
+

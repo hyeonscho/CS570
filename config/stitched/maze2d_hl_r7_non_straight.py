@@ -157,23 +157,6 @@ maze2d_large_v1 = {
         "n_diffusion_steps": 256,
     },
 }
-
-maze2d_xxlarge_v1 = {
-    "diffusion": {
-        "max_path_length": 3000,
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-        "upsample_k": (3, 4, 4),
-        "downsample_k": (4, 3, 3),
-        "max_round": 7,
-        "max_n_episodes": 100000,
-    },
-    "plan": {
-        "horizon": 780,
-        "n_diffusion_steps": 256,
-    },
-}
-
 maze2d_giant_v1 = {
     "diffusion": {
         "horizon": 510,
@@ -183,6 +166,21 @@ maze2d_giant_v1 = {
     },
     "plan": {
         "horizon": 510,
+        "n_diffusion_steps": 256,
+    },
+}
+
+maze2d_xxlarge_v1 = {
+    "diffusion": {
+        "horizon": 780,
+        "n_diffusion_steps": 256,
+        "upsample_k": (3, 4, 4),
+        "downsample_k": (4, 3, 3),
+        "max_round": 7,
+    },
+    "plan": {
+        "max_round": 7,
+        "horizon": 780,
         "n_diffusion_steps": 256,
     },
 }

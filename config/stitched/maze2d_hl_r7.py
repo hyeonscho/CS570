@@ -13,6 +13,8 @@ diffusion_args_to_watch = [
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
     ("max_round", "R"),
+    ("stitched_method", ""),
+
 ]
 
 plan_args_to_watch = [
@@ -29,6 +31,8 @@ plan_args_to_watch = [
     ("jump", "J"),
     ("restricted_pd", "rpd"),
     ("max_round", "R"),
+    ("stitched_method", ""),
+
 ]
 
 logbase = "logs"
@@ -85,10 +89,11 @@ base = {
         "use_short_data": True,
         "max_round": 7,
         "max_n_episodes": 100000,
-
+        "stitched_method": "linear", # "linear"
 
     },
     "plan": {
+        "stitched_method": "linear", # "linear"
         "max_round": 7,
         "batch_size": 1,
         "device": "cuda",
@@ -113,7 +118,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:stitched_diffusion_hd/H{horizon}_T{n_diffusion_steps}_J{jump}_R{max_round}",
+        "diffusion_loadpath": "f:stitched_diffusion_hd/H{horizon}_T{n_diffusion_steps}_J{jump}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest",
     },
 }
@@ -152,18 +157,29 @@ maze2d_large_v1 = {
         "n_diffusion_steps": 256,
     },
 }
+maze2d_giant_v1 = {
+    "diffusion": {
+        "horizon": 510,
+        "n_diffusion_steps": 256,
+        "upsample_k": (3, 3, 4),
+        "downsample_k": (4, 3, 3),
+    },
+    "plan": {
+        "horizon": 510,
+        "n_diffusion_steps": 256,
+    },
+}
 
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_path_length": 3000,
         "horizon": 780,
         "n_diffusion_steps": 256,
         "upsample_k": (3, 4, 4),
         "downsample_k": (4, 3, 3),
         "max_round": 7,
-        "max_n_episodes": 100000,
     },
     "plan": {
+        "max_round": 7,
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

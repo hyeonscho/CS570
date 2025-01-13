@@ -93,10 +93,10 @@ base = {
         "max_round": 7,
         "max_n_episodes": 100000,
         # /root/diffuser_chain_hd/data/<environment>-<method>-postprocess.pkl
-        "stitched_method": "linear", # "linear"
+        "stitched_method": "linear-expl-non_straight", # "linear"
     },
     "plan": {
-        "stitched_method": "linear", # "linear"
+        "stitched_method": "linear-expl-non_straight", # "linear"
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
@@ -193,14 +193,15 @@ maze2d_ultra_v1 = {
 
 maze2d_xxlarge_v1 = {
     "diffusion": {
+        "max_path_length": 3000,
         "horizon": 780,
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
         "max_round": 7,
+        "max_n_episodes": 100000,
     },
     "plan": {
-        "max_round": 7,
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

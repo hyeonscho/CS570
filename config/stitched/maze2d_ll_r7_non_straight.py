@@ -132,8 +132,10 @@ base = {
 
 maze2d_xxlarge_v1 = {
     "diffusion": {
-        "max_path_length": 3000,
         "max_round": 7,
-        "max_n_episodes": 100000,
     },
+    "plan": {
+        "max_round": 7,
+    },
+
 }
