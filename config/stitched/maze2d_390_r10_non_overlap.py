@@ -90,7 +90,7 @@ base = {
 
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 9,
+        "max_round": 10,
         "max_n_episodes": 100000,
         # /root/diffuser_chain_hd/data/<environment>-<method>-postprocess.pkl
         "stitched_method": "linear-non_overlap", # "linear"
@@ -124,7 +124,7 @@ base = {
         "diffusion_loadpath": "f:stitched_diffuser_diffuser/H{horizon}_T{n_diffusion_steps}_J{jump}_AW{action_weight}_R{max_round}_{stitched_method}",
         "diffusion_epoch": "latest", #1000000,
         
-        "max_round": 9,
+        "max_round": 10,
     },
 }
 
@@ -197,10 +197,10 @@ maze2d_xxlarge_v1 = {
         "n_diffusion_steps": 256,
         "upsample_k": (4, 4),
         "downsample_k": (3, 3),
-        "max_round": 9,
+        "max_round": 10,
     },
     "plan": {
-        "max_round": 9,
+        "max_round": 10,
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

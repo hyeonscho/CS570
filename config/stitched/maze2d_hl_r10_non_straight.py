@@ -87,14 +87,14 @@ base = {
         "device": "cuda",
         "use_stitched_data": True,
         "use_short_data": True,
-        "max_round": 9,
+        "max_round": 10,
         "max_n_episodes": 100000,
         "stitched_method": "linear-non_straight", # "linear"
 
     },
     "plan": {
         "stitched_method": "linear-non_straight", # "linear"
-        "max_round": 9,
+        "max_round": 10,
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
@@ -176,10 +176,10 @@ maze2d_xxlarge_v1 = {
         "n_diffusion_steps": 256,
         "upsample_k": (3, 4, 4),
         "downsample_k": (4, 3, 3),
-        "max_round": 9,
+        "max_round": 10,
     },
     "plan": {
-        "max_round": 9,
+        "max_round": 10,
         "horizon": 780,
         "n_diffusion_steps": 256,
     },

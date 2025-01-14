@@ -95,7 +95,7 @@ class SequenceDatasetHMDMultiscale(torch.utils.data.Dataset):
         
         # self.jumps = [1, 1, 1, 10, 15, 20]
         # TODO: refactor this
-        _jumps = list(set(self.jumps))
+        _jumps = sorted(list(set(self.jumps)))
         assert _jumps[0] == 1 and _jumps[1] > 1
         self.jumps_wo_ll = _jumps[1:]
         self.bins_lengths = [j*self.short_seq_len for j in self.jumps]
