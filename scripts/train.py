@@ -1,6 +1,10 @@
 import os
 import sys
 
+os.environ["MUJOCO_GL"] = "egl"
+os.environ["MUJOCO_RENDERER"] = "egl"
+
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
@@ -19,8 +23,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class Parser(utils.Parser):
-    dataset: str = "maze2d-large-v1"
-    config: str = "config.maze2d_hl"
+    dataset: str = None
+    config: str = None
 
 
 args = Parser().parse_args("diffusion")

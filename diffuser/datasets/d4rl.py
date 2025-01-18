@@ -35,7 +35,9 @@ def load_environment(name):
         ## name is already an environment
         return name
     with suppress_output():
-        wrapped_env = gym.make(name)
+        import ogbench
+        wrapped_env, _, _ = ogbench.make_env_and_datasets(name, compact_dataset=True)
+        # wrapped_env = gym.make(name)
     env = wrapped_env.unwrapped
     env.max_episode_steps = wrapped_env._max_episode_steps
     env.name = name

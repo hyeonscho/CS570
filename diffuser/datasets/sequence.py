@@ -153,7 +153,7 @@ class GoalDataset(SequenceDataset):
         """
         return {
             0: observations[0],
-            self.horizon // self.jump - 1: observations[-1],
+            self.horizon // self.jump : observations[-1],
         }
 
 

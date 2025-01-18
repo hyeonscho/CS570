@@ -321,6 +321,15 @@ MAZE_BOUNDS = {
     "maze2d-xxlarge-v2": (0, 18, 0, 24),
     "maze2d-xxlarge-v3": (0, 18, 0, 24),
     "maze2d-xxlargec-v1": (0, 18, 0, 24),
+
+    'pointmaze-medium-navigate-v0': (0, 8, 0, 8),
+    'pointmaze-large-navigate-v0': (0, 9, 0, 12),
+    'pointmaze-giant-navigate-v0': (0, 12, 0, 16),
+    'pointmaze-teleport-navigate-v0': (0, 9, 0, 12), 
+    'pointmaze-medium-stitch-v0': (0, 8, 0, 8), 
+    'pointmaze-large-stitch-v0': (0, 9, 0, 12),
+    'pointmaze-giant-stitch-v0': (0, 12, 0, 16),
+    'pointmaze-teleport-stitch-v0': (0, 9, 0, 12),
 }
 
 
@@ -336,19 +345,49 @@ class MazeRenderer:
     def renders(self, observations, conditions=None, title=None):
         plt.clf()
         fig = plt.gcf()
-        fig.set_size_inches(5, 5)
-        plt.imshow(
-            self._background * 0.5,
-            extent=self._extent,
-            cmap=plt.cm.binary,
-            vmin=0,
-            vmax=1,
-        )
+        map_height, map_width = self._background.shape[:2]
+        fig.set_size_inches(map_width, map_height)  # 크기 조정 비율은 필요에 따라 변경
+        # fig.set_size_inches(5, 5)
 
-        path_length = len(observations)
-        colors = plt.cm.jet(np.linspace(0, 1, path_length))
-        plt.plot(observations[:, 1], observations[:, 0], c="black", zorder=10)
-        plt.scatter(observations[:, 1], observations[:, 0], c=colors, zorder=20)
+        # def convert_maze_string_to_grid(maze_string):
+        #     lines = maze_string.split("\\")
+        #     grid = [line[1:-1] for line in lines]
+        #     return grid[1:-1]
+        # if "giant" in cfg.dataset:
+        #    maze_string = "############\\#OOOOO#OOOO#\\###O#O#O##O#\\#OOO#OOOO#O#\\#O########O#\\#O#OOOOOOOO#\\#OOO#O#O#O##\\#O###OO##OO#\\#OOO##OO##O#\\###O#O#O#OO#\\##OO#OOO#O##\\#OO##O###OO#\\#O#OOOOOO#O#\\#O#O###O##O#\\#OOOOO#OOOO#\\############"
+        # maze_string = "########\\#OO#OOO#\\#OOOO#O#\\###O#OO#\\##OOOO##\\#OO#O#O#\\#OO#OOO#\\########"
+        # grid = convert_maze_string_to_grid(maze_string)
+        # plt.figure()
+        plt.scatter(observations[:, 0]/4+1, observations[:, 1]/4+1, c=np.arange(len(observations[:])), cmap="Reds")
+        # for i, row in enumerate(grid):
+        #     for j, cell in enumerate(row):
+        #         if cell == "#":
+        #             square = plt.Rectangle((i + 0.5, j + 0.5), 1, 1, edgecolor="black", facecolor="black")
+        #             plt.gca().add_patch(square)
+        # plt.gca().set_aspect("equal", adjustable="box")
+        # plt.gca().set_facecolor("lightgray")
+        # plt.gca().set_axisbelow(True)
+        # plt.gca().set_xticks(np.arange(1, len(grid), 0.5), minor=True)
+        # plt.gca().set_yticks(np.arange(1, len(grid[0]), 0.5), minor=True)
+        # plt.xlim([0.5, len(grid) + 0.5])
+        # plt.ylim([0.5, len(grid[0]) + 0.5])
+        # plt.tick_params(axis="both", which="both", bottom=False, top=False, left=False, right=False, labelbottom=False, labelleft=False)
+        # plt.grid(True, color="white", which="minor", linewidth=4)
+        # plt.gca().spines["top"].set_linewidth(4)
+        # plt.gca().spines["right"].set_linewidth(4)
+        # plt.gca().spines["bottom"].set_linewidth(4)
+        # plt.gca().spines["left"].set_linewidth(4)
+
+        # if self._background is not None:
+        #     height, width = self._background.shape[:2]
+        #     self._extent = (0, width, height, 0)
+            
+        plt.imshow(self._background * 0.5,cmap=plt.cm.binary,vmin=0,vmax=1,)
+
+        # path_length = len(observations)
+        # colors = plt.cm.jet(np.linspace(0, 1, path_length))
+        # plt.plot(observations[:, 1], observations[:, 0], c="black", zorder=10)
+        # plt.scatter(observations[:, 1], observations[:, 0], c=colors, zorder=20)
         plt.axis("off")
         plt.title(title)
         img = plot2img(fig, remove_margins=self._remove_margins)
@@ -367,6 +406,7 @@ class MazeRenderer:
         for path, kw in zipkw(paths, **kwargs):
             img = self.renders(*path, **kw)
             images.append(img)
+
         images = np.stack(images, axis=0)
 
         nrow = len(images) // ncol
@@ -381,7 +421,8 @@ class Maze2dRenderer(MazeRenderer):
     def __init__(self, env, observation_dim=None):
         self.env_name = env
         self.env = load_environment(env)
-        self._background = self.env.maze_arr == 10
+        # self._background = self.env.maze_arr == 10
+        self._background = self.env.maze_map == 1
         self.observation_dim = np.prod(self.env.observation_space.shape)
         self.action_dim = np.prod(self.env.action_space.shape)
         self.goal = None
@@ -391,14 +432,15 @@ class Maze2dRenderer(MazeRenderer):
     def renders(self, observations, conditions=None, **kwargs):
         bounds = MAZE_BOUNDS[self.env_name]
 
-        observations = observations + 0.5
+        # observations = observations + 1
         if len(bounds) == 2:
             _, scale = bounds
             observations /= scale
         elif len(bounds) == 4:
             _, iscale, _, jscale = bounds
-            observations[:, 0] /= iscale
-            observations[:, 1] /= jscale
+            self._extent = (-0.5, iscale - 0.5, jscale - 0.5, -0.5)
+            # observations[:, 0] = (observations[:, 0] + 4) / iscale
+            # observations[:, 1] = (observations[:, 1] + 4) / jscale
         else:
             raise RuntimeError(f"Unrecognized bounds for {self.env_name}: {bounds}")
 

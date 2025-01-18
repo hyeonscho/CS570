@@ -35,32 +35,32 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 255,
+        "horizon": 1000,
         "jump": 1,
-        "jump_action": "none",
+        "jump_action": 1,#"none",
         "condition": True,
         "n_diffusion_steps": 256,
-        "action_weight": 10,
+        "action_weight": 1,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
         "dim_mults": (1, 4, 8),
-        "upsample_k": (3, 3, 3),
+        "upsample_k": (4, 4, 3),
         "downsample_k": (3, 3, 3),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
         ## dataset
-        "loader": "datasets.GoalDataset",
+        "loader": "datasets.OGMaze2dOfflineRLDataset",
         "termination_penalty": None,
         "normalizer": "LimitsNormalizer",
         "preprocess_fns": ["maze2d_set_terminals"],
         "clip_denoised": True,
         "use_padding": False,
-        "max_path_length": 40000,
+        "max_path_length": 1000,
         ## serialization
         "logbase": logbase,
-        "prefix": "diffuserdiffusion/",
+        "prefix": "_ogbench_medium_navigate/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -83,9 +83,9 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 255,
+        "horizon": 1000,
         "jump": 1,
-        "jump_action": "none",
+        "jump_action": 1, #"none",
         "attention": False,
         "condition": True,
         "kernel_size": 5,
@@ -103,42 +103,42 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuserdiffuserdiffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffuser_ogbench_medium_navigate/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
     },
 }
 
 # ------------------------ overrides ------------------------#
 
-"""
-    maze2d maze episode steps:
-        umaze: 150
-        medium: 250
-        large: 600
-"""
+# """
+#     maze2d maze episode steps:
+#         umaze: 150
+#         medium: 250
+#         large: 600
+# """
 
-maze2d_umaze_v1 = {
-    "diffusion": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-        "upsample_k": (4, 4, 4),
-        "downsample_k": (4, 4, 4),
-    },
-    "plan": {
-        "horizon": 120,
-        "n_diffusion_steps": 64,
-    },
-}
+# maze2d_umaze_v1 = {
+#     "diffusion": {
+#         "horizon": 120,
+#         "n_diffusion_steps": 64,
+#         "upsample_k": (4, 4, 4),
+#         "downsample_k": (4, 4, 4),
+#     },
+#     "plan": {
+#         "horizon": 120,
+#         "n_diffusion_steps": 64,
+#     },
+# }
 
-maze2d_large_v1 = {
-    "diffusion": {
-        "horizon": 300,
-        "n_diffusion_steps": 256,
-        "upsample_k": (4, 4),
-        "downsample_k": (3, 3),
-    },
-    "plan": {
-        "horizon": 300,
-        "n_diffusion_steps": 256,
-    },
-}
+# maze2d_large_v1 = {
+#     "diffusion": {
+#         "horizon": 300,
+#         "n_diffusion_steps": 256,
+#         "upsample_k": (4, 4),
+#         "downsample_k": (3, 3),
+#     },
+#     "plan": {
+#         "horizon": 300,
+#         "n_diffusion_steps": 256,
+#     },
+# }

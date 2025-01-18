@@ -1,5 +1,5 @@
 # FROM USERNAME/rlx:torch
-FROM USERNAME/rlx:torch
+FROM doojin/rlx:torch
 
 # ENV PATH="/root/miniconda3/bin:${PATH}"
 # ARG PATH="/root/miniconda3/bin:${PATH}"
@@ -44,7 +44,7 @@ ENV PYTHONBREAKPOINT "pudb.set_trace"
 RUN pip install numpy==1.19.5 \
                 absl-py==0.13.0 \
                 pyparsing==2.4.7 \
-                jupyterlab==3.0.14 \
+                jupyterlab==4.3.4 \
                 scikit-image==0.18.1 \
                 termcolor==1.1.0 \
                 dm-control==0.0.364896371 \
@@ -72,7 +72,7 @@ RUN pip install cython==0.29.36
 RUN pip install mujoco_py==2.0.2.13 --no-build-isolation
 
 # https://github.com/pypa/setuptools/issues/3301
-RUN pip install setuptools==59.8.0
+RUN pip install setuptools==65.5.0
 RUN pip install scikit-image
 
 # COPY rlx_envs/ /rlx_envs/
@@ -99,7 +99,7 @@ RUN python -m pip install setuptools==66 wheel==0.38.1
 RUN pip install numpy \
             setuptools==65.0.0 \
             "wheel<=0.40.0" \
-            gym==0.18.0 \
+            gym==0.23.1 \
             cython==0.29.36 \
             mujoco-py==2.0.2.13 \
             matplotlib==3.3.4 \

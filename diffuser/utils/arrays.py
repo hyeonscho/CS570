@@ -62,6 +62,20 @@ def batchify(batch):
 		val = apply_dict(fn, val) if type(val) is dict else fn(val)
 		batched_vals.append(val)
 	return type(batch)(*batched_vals)
+# def batchify(batch):
+#     '''
+#         convert a single dataset item to a batch suitable for passing to a model by
+#         1) converting np arrays to torch tensors and
+#         2) and ensuring that everything has a batch dimension
+#     '''
+#     fn = lambda x: to_torch(x[None])
+#     breakpoint()
+
+#     batched_vals = []
+#     for val in batch:
+#         val = apply_dict(fn, val) if type(val) is dict else fn(val)
+#         batched_vals.append(val)
+#     return torch.stack(batched_vals)
 
 def apply_dict(fn, d, *args, **kwargs):
 	return {
