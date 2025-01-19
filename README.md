@@ -1,3 +1,17 @@
+# Diffuser Code Base
+## Trainining
+```
+python scripts/train.py --config config.og_navigate.py --dataset "pointmaze-medium-navigate-v0"
+```
+## Evaluation
+```
+python scripts/plan_maze2d.py --config config.og_navigate.py --dataset "pointmaze-medium-navigate-v0"
+```
+
+
+---
+### 아래는 HD의 readme
+
 # Simple Hierarchical Planning with Diffusion
 Chang Chen, Fei Deng, Kenji Kawaguchi, Caglar Gulcehre, Sungjin Ahn
 
