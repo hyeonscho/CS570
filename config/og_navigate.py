@@ -60,7 +60,7 @@ base = {
         "max_path_length": 1000,
         ## serialization
         "logbase": logbase,
-        "prefix": "_ogbench_medium_navigate/",
+        "prefix": "_ogbench_navigate/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
@@ -103,7 +103,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuser_ogbench_medium_navigate/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffuser_ogbench_navigate/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
     },
 }

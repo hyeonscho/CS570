@@ -7,13 +7,7 @@ os.environ["MUJOCO_RENDERER"] = "egl"
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import json
-import numpy as np
-from os.path import join
-import pdb
-from diffuser.guides.policies import Policy
 import diffuser.utils as utils
-import diffuser.datasets as datasets
 from torch.utils.tensorboard import SummaryWriter
 
 
