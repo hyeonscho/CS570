@@ -330,6 +330,15 @@ MAZE_BOUNDS = {
     'pointmaze-large-stitch-v0': (0, 9, 0, 12),
     'pointmaze-giant-stitch-v0': (0, 12, 0, 16),
     'pointmaze-teleport-stitch-v0': (0, 9, 0, 12),
+
+    'antmaze-medium-navigate-v0': (0, 8, 0, 8),
+    'antmaze-large-navigate-v0': (0, 9, 0, 12),
+    'antmaze-giant-navigate-v0': (0, 12, 0, 16),
+    'antmaze-teleport-navigate-v0': (0, 9, 0, 12), 
+    'antmaze-medium-stitch-v0': (0, 8, 0, 8), 
+    'antmaze-large-stitch-v0': (0, 9, 0, 12),
+    'antmaze-giant-stitch-v0': (0, 12, 0, 16),
+    'antmaze-teleport-stitch-v0': (0, 9, 0, 12),
 }
 
 
@@ -359,6 +368,10 @@ class MazeRenderer:
         # grid = convert_maze_string_to_grid(maze_string)
         # plt.figure()
         plt.scatter(observations[:, 0]/4+1, observations[:, 1]/4+1, c=np.arange(len(observations[:])), cmap="Reds")
+
+        # plt.scatter(observations[:, 0]/4+1, observations[:, 1]/4+1, c=np.arange(len(observations[:])), cmap="Reds")
+
+        #plt.scatter(observations[:, 0]/4+1, observations[:, 1]/4+1, c=np.arange(len(observations[:])), cmap="Reds")
         # for i, row in enumerate(grid):
         #     for j, cell in enumerate(row):
         #         if cell == "#":

@@ -35,12 +35,12 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 1000, # 1000
+        "horizon": 256, # 1000
         "jump": 1,
-        "jump_action": 1,#"none",
+        "jump_action": "none", #1,#"none",
         "condition": True,
         "n_diffusion_steps": 256,
-        "action_weight": 1,
+        "action_weight": 0,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
@@ -83,7 +83,7 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 1000,
+        "horizon": 256,
         "jump": 1,
         "jump_action": 1, #"none",
         "attention": False,

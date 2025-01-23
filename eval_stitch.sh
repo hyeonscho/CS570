@@ -4,7 +4,7 @@ datasets=('pointmaze-medium-stitch-v0' 'pointmaze-large-stitch-v0' 'pointmaze-gi
 
 for dataset in "${datasets[@]}"; do
     echo "Running for dataset: $dataset"
-    python scripts/plan_maze2d.py --config config.og_stitch --dataset "$dataset"
+    python scripts/plan_maze2d_stitch.py --config config.og_stitch --dataset "$dataset"
 done
 
 echo "All tasks completed."

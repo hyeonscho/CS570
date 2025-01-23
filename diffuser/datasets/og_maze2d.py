@@ -128,6 +128,9 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
         self.dataset = self.get_dataset()
         # Use [position, velocity] as observation
         self.dataset["observations"] = np.concatenate([self.dataset["qpos"], self.dataset["qvel"]], axis=-1)
+        if 'antmaze' in env:
+            self.dataset['observations'] = self.dataset['observations'][:, :2]
+            # only modeling the x,y positions
         if "navigate" in self.dataset_name:
             if "giant" in self.dataset_name:
                 sample_length = 2001
@@ -179,9 +182,9 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
 
         # dataset normalization
         # breakpoint()
-        self.normalizer = DatasetNormalizer({'observations':self.observations.reshape(-1, 4), 'actions':self.actions.reshape(-1, 2)}, normalizer)
-        self.normalized_obs = self.normalizer.normalize(self.observations.reshape(-1, 4), 'observations').reshape(-1, self.n_frames, 4)
-        self.normalized_act = self.normalizer.normalize(self.actions.reshape(-1, 2), 'actions').reshape(-1, self.n_frames, 2)
+        self.normalizer = DatasetNormalizer({'observations':self.observations.reshape(-1, self.observations.shape[-1]), 'actions':self.actions.reshape(-1, self.actions.shape[-1])}, normalizer)
+        self.normalized_obs = self.normalizer.normalize(self.observations.reshape(-1, self.observations.shape[-1]), 'observations').reshape(-1, self.n_frames, self.observations.shape[-1])
+        self.normalized_act = self.normalizer.normalize(self.actions.reshape(-1, self.actions.shape[-1]), 'actions').reshape(-1, self.n_frames, self.actions.shape[-1])
         # Preprocessed Dataset Statistics
         print(f"Preprocessed Dataset Statistics")
         print(f"Observation shape: {self.observations.shape}")

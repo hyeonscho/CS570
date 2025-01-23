@@ -13,8 +13,6 @@ diffuser/datasets/normalization.py
 diffuser/datasets/og_maze2d.py
 diffuser/datasets/preprocessing.py
 diffuser/datasets/sequence.py
-diffuser/datasets/sequence_hmd.py
-diffuser/datasets/sequence_hmd_multiscale.py
 diffuser/environments/__init__.py
 diffuser/environments/ant.py
 diffuser/environments/giant.py
@@ -29,18 +27,14 @@ diffuser/guides/__init__.py
 diffuser/guides/policies.py
 diffuser/models/__init__.py
 diffuser/models/diffusion.py
-diffuser/models/diffusion_hmd.py
 diffuser/models/helpers.py
-diffuser/models/level_classifier.py
 diffuser/models/temporal.py
 diffuser/models/temporal_attn.py
-diffuser/models/temporal_hmd.py
 diffuser/utils/__init__.py
 diffuser/utils/arrays.py
 diffuser/utils/cloud.py
 diffuser/utils/colab.py
 diffuser/utils/config.py
-diffuser/utils/debug.py
 diffuser/utils/git_utils.py
 diffuser/utils/iql.py
 diffuser/utils/progress.py
@@ -50,7 +44,5 @@ diffuser/utils/serialization.py
 diffuser/utils/setup.py
 diffuser/utils/timer.py
 diffuser/utils/training.py
-diffuser/utils/training_hmd.py
-diffuser/utils/training_level_classifier.py
 diffuser/utils/transformations.py
 diffuser/utils/video.py

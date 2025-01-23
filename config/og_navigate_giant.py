@@ -35,7 +35,7 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 1000, # 1000
+        "horizon": 512, # 1000
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
@@ -83,7 +83,7 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 1000,
+        "horizon": 512,
         "jump": 1,
         "jump_action": 1, #"none",
         "attention": False,

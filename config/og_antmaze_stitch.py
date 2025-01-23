@@ -35,12 +35,12 @@ base = {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 1000, # 1000
+        "horizon": 100,
         "jump": 1,
-        "jump_action": 1,#"none",
+        "jump_action": "none", #1,#"none",
         "condition": True,
         "n_diffusion_steps": 256,
-        "action_weight": 1,
+        "action_weight": 0,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": False,
@@ -57,15 +57,15 @@ base = {
         "preprocess_fns": ["maze2d_set_terminals"],
         "clip_denoised": True,
         "use_padding": False,
-        "max_path_length": 1000,
+        "max_path_length": 100,
         ## serialization
         "logbase": logbase,
-        "prefix": "_ogbench_navigate/",
+        "prefix": "_ogbench_stitch/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
         "loss_type": "l2",
-        "n_train_steps": 2e5, # 2e6
+        "n_train_steps": 2e5,
         "batch_size": 32,
         "learning_rate": 2e-4,
         "gradient_accumulate_every": 2,
@@ -83,7 +83,7 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 1000,
+        "horizon": 100,
         "jump": 1,
         "jump_action": 1, #"none",
         "attention": False,
@@ -103,7 +103,7 @@ base = {
         "transfer": "none",
         "restricted_pd": False,
         ## loading
-        "diffusion_loadpath": "f:diffuser_ogbench_navigate/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        "diffusion_loadpath": "f:diffuser_ogbench_stitch/H{horizon}_T{n_diffusion_steps}_J{jump}",
         "diffusion_epoch": "latest", #1000000,
     },
 }

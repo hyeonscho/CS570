@@ -22,7 +22,7 @@ class Parser(utils.Parser):
 #---------------------------------- setup ----------------------------------#
 n_samples = 50
 args = Parser().parse_args('plan', add_extras=True)
-args.savepath = args.savepath[:-1] + '50_samples'
+args.savepath = args.savepath[:-1] + 'replanning_start_condition_v2'
 save_path = args.savepath
 restricted_pd = args.restricted_pd
 
@@ -39,11 +39,11 @@ dataset = diffusion_experiment.dataset
 renderer = diffusion_experiment.renderer
 policy = Policy(diffusion, dataset.normalizer)
 
-# 여기서 horizon이 100이면 총 1000 step을 위해 10번 더 길게 반복
 max_planning_steps = args.horizon #env.max_episode_steps
 
 scores = []
 success_rate = []
+replanning_at_every = 50
 
 for i in range(n_samples):
     env.set_task(task_id = (i % 5) + 1)
@@ -60,18 +60,22 @@ for i in range(n_samples):
     distance_threshold = 2
     plan = None
     sequence = None
+    k = 0
 
     for t in range(max_planning_steps):
-        if t % diffusion.horizon == 0: # start
-            cond[0] = observation
-
-            # # cond[0][:2] = (cond[0][:2]-1)*4
-            # cond[diffusion.horizon - 1][:2] = (cond[diffusion.horizon - 1][:2]-1)*4
-            # breakpoint()
-
+        if t % replanning_at_every == 0: # start
+            if k == 0:
+                cond[0] = observation
+            else:
+                cond = {
+                    diffusion.horizon - 1: np.array([*target, 0, 0]),
+                }
+                for j in range(len(rollout)):
+                    cond[j] = rollout[j]
             _, samples = policy(cond, batch_size=args.batch_size)
             plan = samples.observations
             sequence = plan[0]
+            k = k + 1
 
         state = env.state_vector().copy()
         if t < len(sequence) - 1:
@@ -105,11 +109,11 @@ for i in range(n_samples):
         observation = next_observation
 
     plan_rollout = [np.array(plan)[0], np.array(rollout)]
-    renderer.composite(join(args.savepath, f'plan_rollout{i}.png'), plan_rollout, ncol=2)
+    renderer.composite(join(save_path, f'plan_rollout{i}.png'), plan_rollout, ncol=2)
 
     print(f" {i} / {n_samples}\t t: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | ")
 
-    json_path = join(args.savepath, f"idx{i}_rollout.json")
+    json_path = join(save_path, f"idx{i}_rollout.json")
     json_data = {'step': t, 'return': total_reward, 'term': terminal,
                  'epoch_diffusion': diffusion_experiment.epoch}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
@@ -117,5 +121,5 @@ for i in range(n_samples):
 
 _success_rate = np.sum(success_rate)/n_samples*100
 print(f"success rate: {_success_rate:.2f}%")
-json_path = join(args.savepath, "success_rate.json")
+json_path = join(save_path, "success_rate.json")
 json.dump({'success_rate:': _success_rate}, open(json_path, 'w'))
