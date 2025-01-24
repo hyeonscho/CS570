@@ -99,7 +99,8 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
             use_short_data=False,
             max_round=-1,
             stitched_method='linear',
-            split="training"
+            split="training",
+            only_start_condition = False,
         ): #cfg: DictConfig, split: str = "training"):
         super().__init__()
         self.env = env
@@ -117,6 +118,7 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
         self.max_round = max_round
         self.stitched_method = stitched_method
         self.split = split
+        self.only_start_condition = only_start_condition
         # self.cfg = cfg
         #self.save_dir = cfg.save_dir # Using default save_dir, "~/.ogbench/data"
         # self.env_id = cfg.env_id
@@ -206,7 +208,7 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         observations = torch.from_numpy(self.normalized_obs[idx])[::self.jump].float() # (episode_len, obs_dim)
         actions = torch.from_numpy(self.normalized_act[idx]).reshape(-1, self.jump*self.action_dim).float()
-        conditions = self.get_conditions(observations)
+        conditions = self.get_conditions(observations, self.only_start_condition)
         if self.jump_action == "none":
             trajectories = observations
         else:
@@ -232,10 +234,15 @@ class OGMaze2dOfflineRLDataset(torch.utils.data.Dataset):
         else:
             return val_dataset
         
-    def get_conditions(self, observations):
+    def get_conditions(self, observations, only_start_condition):
         """
         condition on both the current observation and the last observation in the plan
         """
+        if only_start_condition:
+            return {
+                0: observations[0],
+            }
+
         return {
             0: observations[0],
             self.horizon // self.jump - 1: observations[-1],

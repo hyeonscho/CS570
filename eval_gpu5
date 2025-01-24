@@ -1,0 +1,5 @@
+#!/bin/bash
+
+python scripts/plan_maze2d_stitch_valueGuidance.py --config config.og_stitch_valueGuidance --dataset "pointmaze-medium-stitch-v0"
+python scripts/plan_maze2d_stitch_valueGuidance.py --config config.og_stitch_valueGuidance --dataset "pointmaze-large-stitch-v0"
+python scripts/plan_maze2d_stitch_valueGuidance.py --config config.og_stitch_valueGuidance --dataset "pointmaze-giant-stitch-v0"

@@ -49,6 +49,7 @@ dataset_config = utils.Config(
     max_round=max_round,
     max_n_episodes=max_n_episodes,
     stitched_method=stitched_method,
+    only_start_condition=args.only_start_condition,
 )
 
 render_config = utils.Config(

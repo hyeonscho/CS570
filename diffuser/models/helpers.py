@@ -94,11 +94,12 @@ def cosine_beta_schedule(timesteps, s=0.008, dtype=torch.float32):
     return torch.tensor(betas_clipped, dtype=dtype)
 
 
-def apply_conditioning(x, conditions, action_dim, observation_dim):
+def apply_conditioning(x, conditions, action_dim, observation_dim=4):
     # a simple hack -> not efficient but should work -> the dataloader prohibits to have conditions with different keys in each sample -> maybe a problem in the version of torch
     variable_key = conditions.get("key", None)
     variable_val = conditions.get("value", None)
     if variable_key is not None:
+        breakpoint()
         variable_key = variable_key[:, 0] # B, H, 1
         for i in range(len(variable_key)):
             t = int(variable_key[i].item())
