@@ -1,0 +1,6 @@
+#!/bin/bash
+
+python scripts/plan_maze2d_valueGuidance_randomSearch.py --config config.og_navigate_medium_valueGuidance --dataset "pointmaze-medium-navigate-v0"
+python scripts/plan_maze2d_valueGuidance_randomSearch.py --config config.og_navigate_large_valueGuidance --dataset "pointmaze-large-navigate-v0"
+python scripts/plan_maze2d_valueGuidance_randomSearch.py --config config.og_navigate_giant_valueGuidance --dataset "pointmaze-giant-navigate-v0"
+
