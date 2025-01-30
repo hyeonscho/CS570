@@ -10,7 +10,9 @@ diffuser/datasets/buffer.py
 diffuser/datasets/d4rl.py
 diffuser/datasets/fake_env.py
 diffuser/datasets/normalization.py
+diffuser/datasets/og_cube.py
 diffuser/datasets/og_maze2d.py
+diffuser/datasets/og_vis.py
 diffuser/datasets/preprocessing.py
 diffuser/datasets/sequence.py
 diffuser/environments/__init__.py

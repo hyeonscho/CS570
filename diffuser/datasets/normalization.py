@@ -149,6 +149,75 @@ class GaussianNormalizer(Normalizer):
     def unnormalize(self, x):
         return x * self.stds + self.means
 
+class VisMediumNormalizer(Normalizer):
+    '''
+        normalizes to zero mean and unit variance
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Medium
+        self.observation_mean =  np.array([0.53332597, -0.57663816, -0.15480594, -0.10989726,  0.13822828, -0.7565398 , -0.67368555, -0.5261524])
+        self.observation_std =  np.array([2.230295 , 1.8695153, 2.5765393, 2.5024776, 2.409886 , 2.3264396, 2.2680814, 2.1177504])
+        # Large
+        # observation_mean: [0.56942457, -0.7748614, 0.03422518, -0.05451093, 0.00234696, -0.4766496, -0.53628725, -1.1162051]
+        # observation_std: [2.0956497, 2.2737527, 2.3882532, 2.6977062, 2.1805387, 2.6994274, 2.4300833, 2.137858]
+        self.means = self.X.mean(axis=0)
+        self.stds = self.X.std(axis=0)
+        self.z = 1
+
+    def __repr__(self):
+        return (
+            f'''[ Normalizer ] dim: {self.mins.size}\n    '''
+            f'''means: {np.round(self.means, 2)}\n    '''
+            f'''stds: {np.round(self.z * self.stds, 2)}\n'''
+        )
+
+    def normalize(self, x):
+        if x.shape[-1] == 8:
+            return (x-self.observation_mean) / self.observation_std
+        else:
+            return (x - self.means) / self.stds
+
+    def unnormalize(self, x):
+        if x.shape[-1] == 8:
+            return x * self.observation_std + self.observation_mean
+        return x * self.stds + self.means
+    
+class VisLargeNormalizer(Normalizer):
+    '''
+        normalizes to zero mean and unit variance
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Medium
+        # self.observation_mean =  [0.53332597, -0.57663816, -0.15480594, -0.10989726,  0.13822828, -0.7565398 , -0.67368555, -0.5261524]
+        # self.observation_std =  [2.230295 , 1.8695153, 2.5765393, 2.5024776, 2.409886 , 2.3264396, 2.2680814, 2.1177504]
+        # Large
+        self.observation_mean =  np.array([0.56942457, -0.7748614, 0.03422518, -0.05451093, 0.00234696, -0.4766496, -0.53628725, -1.1162051])
+        self.observation_std =  np.array([2.0956497, 2.2737527, 2.3882532, 2.6977062, 2.1805387, 2.6994274, 2.4300833, 2.137858])
+        self.means = self.X.mean(axis=0)
+        self.stds = self.X.std(axis=0)
+        self.z = 1
+
+    def __repr__(self):
+        return (
+            f'''[ Normalizer ] dim: {self.mins.size}\n    '''
+            f'''means: {np.round(self.means, 2)}\n    '''
+            f'''stds: {np.round(self.z * self.stds, 2)}\n'''
+        )
+
+    def normalize(self, x):
+        if x.shape[-1] == 8:
+            return (x-self.observation_mean) / self.observation_std
+        return (x - self.means) / self.stds
+
+    def unnormalize(self, x):
+        if x.shape[-1] == 8:
+            return x * self.observation_std + self.observation_mean
+        return x * self.stds + self.means
+    
 
 class LimitsNormalizer(Normalizer):
     '''

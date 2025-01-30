@@ -9,6 +9,7 @@ import mujoco_py as mjc
 import warnings
 import pdb
 from math import pi
+import torch
 
 from .arrays import to_np
 from .video import save_video, save_videos
@@ -20,6 +21,20 @@ from d4rl.pointmaze import maze_model
 # ------------------------------- helper structs ------------------------------#
 # -----------------------------------------------------------------------------#
 
+def get_maze_grid(env_id):
+    # import gym
+    # maze_string = gym.make(env_id).str_maze_spec
+    if "large" in env_id:
+        maze_string = "############\\#OOOO#OOOOO#\\#O##O#O#O#O#\\#OOOOOO#OOO#\\#O####O###O#\\#OO#O#OOOOO#\\##O#O#O#O###\\#OO#OOO#OGO#\\############"
+    if "medium" in env_id:
+        maze_string = "########\\#OO##OO#\\#OO#OOO#\\##OOO###\\#OO#OOO#\\#O#OO#O#\\#OOO#OG#\\########"
+    if "umaze" in env_id:
+        maze_string = "#####\\#GOO#\\###O#\\#OOO#\\#####"
+    if "giant" in env_id:
+        maze_string = "############\\#OOOOO#OOOO#\\###O#O#O##O#\\#OOO#OOOO#O#\\#O########O#\\#O#OOOOOOOO#\\#OOO#O#O#O##\\#O###OO##OO#\\#OOO##OO##O#\\###O#O#O#OO#\\##OO#OOO#O##\\#OO##O###OO#\\#O#OOOOOO#O#\\#O#O###O##O#\\#OOOOO#OOOO#\\############"
+    lines = maze_string.split("\\")
+    grid = [line[1:-1] for line in lines]
+    return grid[1:-1]
 
 def env_map(env_name):
     """
@@ -500,3 +515,231 @@ def rollout_from_state(env, state, actions):
         ## if terminated early, pad with zeros
         observations.append(np.zeros(obs.size))
     return np.stack(observations)
+
+class CubeRenderer:
+    def __init__(self, env, observation_dim=None):
+        self.env_name = env
+        self.env = load_environment(env)
+        self.observation_dim = observation_dim
+        self.action_dim = np.prod(self.env.action_space.shape)
+        self.goal = None
+        self._remove_margins = False
+        # self._extent = (0, 1, 1, 0)
+
+    def composite(self, savepath, paths, ncol=5, **kwargs):
+        """
+        savepath : str
+        observations : [ n_paths x horizon x 2 ]
+        """
+        assert (
+            len(paths) % ncol == 0
+        ), "Number of paths must be divisible by number of columns"
+
+        images = []
+        for path, kw in zipkw(paths, **kwargs):
+            img = self.renders(*path, **kw)
+            images.append(img)
+
+        images = np.stack(images, axis=0)
+
+        nrow = len(images) // ncol
+        images = einops.rearrange(
+            images, "(nrow ncol) H W C -> (nrow H) (ncol W) C", nrow=nrow, ncol=ncol
+        )
+        imageio.imsave(savepath, images)
+        print(f"Saved {len(paths)} samples to: {savepath}")
+
+    def renders(self, observations, conditions=None, **kwargs):
+        num_poses = observations.shape[-1] // 3
+        # 3D plot
+        fig = plt.gcf()
+
+        # background as gray
+        ax = plt.axes(projection='3d')
+        ax.set_facecolor("gray")
+        # set angle
+        ax.view_init(elev=20, azim=30)
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
+        cmaps = ["Reds", "Blues", "Greens", "Oranges", "Purples", "Greys", "YlOrBr", "YlGn", "YlGnBu", "YlOrRd"]
+        for i in range(num_poses):
+            ax.scatter(observations[:, i*3], observations[:, i*3+1], observations[:, i*3+2], c=np.arange(len(observations)), cmap=cmaps[i])
+        img = plot2img(fig, remove_margins=self._remove_margins)
+
+        return img
+    
+class VisRenderer:
+    def __init__(self, env, observation_dim=None, dataset=None):
+        from ogbench.pretrain.models.mlp import MLP
+        from ogbench.pretrain.models.bvae import BetaVAE
+
+        self.env_name = env
+        pretrained_model_path = '/home/baek1127/ogbench/embedded_data/'
+        if 'medium' in self.env_name:
+            pretrained_model_path += 'medium'
+        elif 'large' in self.env_name:
+            pretrained_model_path += 'large'
+        elif 'giant' in self.env_name:
+            pretrained_model_path += 'giant'
+        self.invd_model_path = pretrained_model_path + '/invd.pth'
+        self.e2s_model_path = pretrained_model_path + '/e2s.pth'
+        self.vae_model_path = pretrained_model_path + '/vae.pth'
+        # self.env = load_environment(env)
+        self.observation_dim = observation_dim
+        self.action_dim = 0
+        self.dataset = dataset
+
+        # self.action_dim = np.prod(self.env.action_space.shape)
+        self.goal = None
+        self._remove_margins = False
+        # self._extent = (0, 1, 1, 0)
+        
+
+
+        self.action_model = MLP(self.observation_dim * 3, 2, hidden_dim=1024, num_layers=3) # use 3 frames
+        self.action_model.load_state_dict(torch.load(self.invd_model_path))
+
+        self.e2s_model = MLP(self.observation_dim, 2, hidden_dim=1024, num_layers=4) # position 2
+        self.e2s_model.load_state_dict(torch.load(self.e2s_model_path))
+
+        self.vae_model = BetaVAE()
+        self.vae_model.load_state_dict(torch.load(self.vae_model_path))
+
+    def composite(self, savepath, paths, ncol=5, **kwargs):
+        """
+        savepath : str
+        observations : [ n_paths x horizon x 2 ]
+        """
+        assert (
+            len(paths) % ncol == 0
+        ), "Number of paths must be divisible by number of columns"
+
+        images = []
+        for path, kw in zipkw(paths, **kwargs):
+            img = self.renders(*path, **kw)
+            images.append(img)
+
+        images = np.stack(images, axis=0)
+
+        nrow = len(images) // ncol
+        images = einops.rearrange(
+            images, "(nrow ncol) H W C -> (nrow H) (ncol W) C", nrow=nrow, ncol=ncol
+        )
+        imageio.imsave(savepath, images)
+        print(f"Saved {len(paths)} samples to: {savepath}")
+        pass
+
+    def renders(self, observations, conditions=None, **kwargs):
+
+        # observations = self.dataset.normalizer.normalize(torch.tensor(observations), "observations")
+
+        observations = self.decode_position_from_normalized_emb(observations)
+
+        plot_end_points = kwargs.get('plot_end_points', False)
+        start = kwargs.get('start', None)
+        goal = kwargs.get('goal', None)
+        
+        plt.clf()
+        fig = plt.gcf()
+
+        ax = plt.axes()
+        
+        maze_grid = get_maze_grid(self.env_name)
+        plot_maze_layout(ax, maze_grid)
+        ax.scatter(observations[:, 0], observations[:, 1], c=np.arange(len(observations)), cmap="Reds")
+        
+        if plot_end_points:
+            start_goal = (start, goal)
+            plot_start_goal(ax, start_goal)
+        # plt.title(f"sample_{batch_idx}")
+        fig.tight_layout()
+        fig.canvas.draw()
+        img_shape = fig.canvas.get_width_height()[::-1] + (4,)
+        img = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).copy().reshape(img_shape)
+
+        plt.close()
+
+        return img
+    
+    def decode_position_from_normalized_emb(self, emb):
+        # Normalizations for medium maze
+        emb = torch.tensor(emb).to(torch.float32)
+        pos = self.e2s_model(emb).detach().cpu().numpy()
+
+        if 'medium' in self.env_name and 'point' in self.env_name:
+            pos_mean = np.array([10.273524, 9.648321])
+            pos_std = np.array([5.627576, 4.897987])
+        elif 'large' in self.env_name and 'point' in self.env_name:
+            pos_mean = np.array([16.702621, 10.974173])
+            pos_std = np.array([10.050303, 6.8203936])
+        elif 'giant' in self.env_name and 'point' in self.env_name:
+            pos_mean = np.array([24.888689, 17.158426])
+            pos_std = np.array([14.732276, 11.651127])
+
+        pos = pos * pos_std + pos_mean
+        pos = pos / 4 + 1
+        if not 'giant' in self.env_name:
+            if len(pos.shape) == 2:
+                pos = pos[:, [1, 0]]
+            else: # if batched
+                pos = pos[:, :, [1, 0]]
+        return pos
+
+def plot_start_goal(ax, start_goal: None):
+    def draw_star(center, radius, num_points=5, color="black"):
+        angles = np.linspace(0.0, 2 * np.pi, num_points, endpoint=False) + 5 * np.pi / (2 * num_points)
+        inner_radius = radius / 2.0
+        points = []
+        for angle in angles:
+            points.extend(
+                [
+                    center[0] + radius * np.cos(angle),
+                    center[1] + radius * np.sin(angle),
+                    center[0] + inner_radius * np.cos(angle + np.pi / num_points),
+                    center[1] + inner_radius * np.sin(angle + np.pi / num_points),
+                ]
+            )
+        star = plt.Polygon(np.array(points).reshape(-1, 2), color=color)
+        ax.add_patch(star)
+    start_x, start_y = start_goal[0]
+    start_outer_circle = plt.Circle((start_x, start_y), 0.16, facecolor="white", edgecolor="black")
+    ax.add_patch(start_outer_circle)
+    start_inner_circle = plt.Circle((start_x, start_y), 0.08, color="black")
+    ax.add_patch(start_inner_circle)
+    goal_x, goal_y = start_goal[1]
+    goal_outer_circle = plt.Circle((goal_x, goal_y), 0.16, facecolor="white", edgecolor="black")
+    ax.add_patch(goal_outer_circle)
+    draw_star((goal_x, goal_y), radius=0.08)
+
+def plot_maze_layout(ax, maze_grid):
+    ax.clear()
+    if maze_grid is not None:
+        for i, row in enumerate(maze_grid):
+            for j, cell in enumerate(row):
+                if cell == "#":
+                    square = plt.Rectangle((i + 0.5, j + 0.5), 1, 1, edgecolor="black", facecolor="black")
+                    ax.add_patch(square)
+    ax.set_aspect("equal")
+    ax.grid(True, color="white", linewidth=4)
+    ax.set_axisbelow(True)
+    ax.spines["top"].set_linewidth(4)
+    ax.spines["right"].set_linewidth(4)
+    ax.spines["bottom"].set_linewidth(4)
+    ax.spines["left"].set_linewidth(4)
+    ax.set_facecolor("lightgray")
+    ax.tick_params(
+        axis="both",
+        which="both",
+        bottom=False,
+        top=False,
+        left=False,
+        right=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+    ax.set_xticks(np.arange(0.5, len(maze_grid) + 0.5))
+    ax.set_yticks(np.arange(0.5, len(maze_grid[0]) + 0.5))
+    ax.set_xlim(0.5, len(maze_grid) + 0.5)
+    ax.set_ylim(0.5, len(maze_grid[0]) + 0.5)
+    ax.grid(True, color="white", which="minor", linewidth=4)

@@ -1,5 +1,20 @@
 #!/bin/bash
 
-python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_medium_valueGuidance --dataset "antmaze-medium-navigate-v0"
-python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_large_valueGuidance --dataset "antmaze-large-navigate-v0"
-python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_giant_valueGuidance --dataset "antmaze-giant-navigate-v0"
+#!/bin/bash
+
+# 사용 가능한 메모리 퍼센트 계산
+while true; do
+    total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    free_mem=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+    mem_usage=$(( ( (total_mem - free_mem) * 100 ) / total_mem ))
+
+    if [ "$mem_usage" -lt 60 ]; then
+        echo "메모리 사용량이 60% 미만이므로 스크립트를 실행합니다."
+        python scripts/plan_vis_valueGuidance_replanning.py --config config.og_vis_medium_500 --dataset "visual-pointmaze-medium-v0"
+        python scripts/plan_vis_valueGuidance_replanning.py --config config.og_vis_large_500 --dataset "visual-pointmaze-large-v0"
+        break
+    else
+        echo "메모리 사용량이 높음: ${mem_usage}% (60% 미만이 될 때까지 대기 중)"
+        sleep 10  # 10초 후 다시 확인
+    fi
+done

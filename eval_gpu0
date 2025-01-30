@@ -1,0 +1,5 @@
+#!/bin/bash
+
+python scripts/TTC_plan_maze2d_valueGuidance.py --config config.og_navigate_medium_valueGuidance_500 --n_diffusion_steps 300 --dataset "pointmaze-medium-navigate-v0"
+python scripts/TTC_plan_maze2d_valueGuidance.py --config config.og_navigate_medium_valueGuidance_500 --n_diffusion_steps 3000 --dataset "pointmaze-medium-navigate-v0"
+python scripts/TTC_plan_maze2d_valueGuidance.py --config config.og_navigate_medium_valueGuidance_500 --n_diffusion_steps 9000 --dataset "pointmaze-medium-navigate-v0"

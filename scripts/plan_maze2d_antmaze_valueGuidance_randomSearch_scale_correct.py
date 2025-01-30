@@ -9,7 +9,7 @@ import numpy as np
 from os.path import join
 import pdb
 
-from diffuser.guides.policies import TrueValueGuidedAntmazePolicy, TrueValueGuideAntmaze
+from diffuser.guides.policies import TrueValueGuidedAntmazePolicy_RS, TrueValueGuideAntmaze
 import diffuser.datasets as datasets
 import diffuser.utils as utils
 
@@ -20,11 +20,43 @@ class Parser(utils.Parser):
     config: str = ''
 
 #---------------------------------- setup ----------------------------------#
+
 n_samples = 50
 args = Parser().parse_args('plan', add_extras=True)
-args.savepath = args.savepath[:-1] + 'value_guidance_replanning'
+args.savepath = args.savepath[:-1] + 'value_guidance_RS_multi_scale_correct_1500'
 save_path = args.savepath
 restricted_pd = args.restricted_pd
+
+RS_samples = 40 # number of random search samples
+if 'giant' in args.dataset:
+    RS_samples = 70
+else:
+    RS_samples = 60
+print('Random Search #Samples:', RS_samples)
+
+# RS_samples = 40 # number of random search samples
+def sample_and_rank(policy, cond, scale):
+    _, samples = policy(cond, batch_size=RS_samples, scale=scale) 
+
+    plans = samples.observations # [RS_samples, horizon, observation_dim]
+    values = np.zeros(RS_samples)
+    
+    for s in range(len(plans)):
+        plan = plans[s]
+        for t in range(1, plan.shape[0]):
+            pos_diff = np.linalg.norm(plan[t, :2] - plan[t-1, :2], axis=-1)
+            if pos_diff > 1.0:
+                values[s] = 0
+                break
+            if np.linalg.norm(plan[t, :2] - cond[diffusion.horizon - 1][:2], axis=-1) < 1.0:
+                values[s] = (diffusion.horizon - t) / diffusion.horizon
+                break
+
+    best_plan_idx = np.argmax(values)
+
+    plan = plans[best_plan_idx][None, ...]
+
+    return plan
 
 from diffuser.utils.serialization import mkdir
 mkdir(save_path)
@@ -36,7 +68,7 @@ diffusion = diffusion_experiment.ema
 dataset = diffusion_experiment.dataset
 renderer = diffusion_experiment.renderer
 guide = TrueValueGuideAntmaze('every', diffusion.horizon)
-policy = TrueValueGuidedAntmazePolicy(guide, diffusion, dataset.normalizer)
+policy = TrueValueGuidedAntmazePolicy_RS(guide, diffusion, dataset.normalizer)
 
 # DQL Load
 from dql.main_Antmaze import hyperparameters
@@ -76,12 +108,15 @@ agent.load_model(os.path.join(os.getcwd(), "logs", "dql", dql_folder), id=200)
 
 
 max_planning_steps = args.horizon #env.max_episode_steps
-replanning_at_every = 50
+scales = [0.01, 0.05, 0.1, 0.2, 0.3]
 scores = []
 success_rate = []
 
 for i in range(n_samples):
     env.set_task(task_id = (i % 5) + 1)
+    # scale = scales[(i // 5) % 5] # 순서대로 00000, 11111, 22222, 33333, 44444, 00000, 11111, 22222, 33333, 44444, 00000.
+    # print(scale)
+    scale = [scales[i%5] for i in range(RS_samples)]
     observation, info = env.reset()
     target = env.cur_goal_xy # env.xy_to_ij(env.cur_goal_xy)
 
@@ -93,38 +128,18 @@ for i in range(n_samples):
 
     rollout = [observation.copy()]
     total_reward = 0
-    distance_threshold = 2
 
-    _, samples = policy(cond, batch_size=args.batch_size)
-    plan = samples.observations
+    plan = sample_and_rank(policy, cond, scale)
+
+    # _, samples = policy(cond, batch_size=args.batch_size)
+    # plan = samples.observations
     sequence = plan[0]
     subgoal_pos = 0
     step = 0
-    k = 0
 
     while True:
-        # print(k, len(rollout))
-        if (len(rollout) - 1) % replanning_at_every == 0:
-            if k == 0:
-                cond[0] = np.array([*(observation[:2])])
-            else:
-                # breakpoint()
-                cond = {
-                    diffusion.horizon - 1: np.array([*target]),
-                }
-                # breakpoint()
-                cond[0] = rollout[-1][:2]
-                # for j in range(k * replanning_at_every):
-                #     cond[j] = rollout[-(k *replanning_at_every) + j][:2]
-                # subgoal_pos = k * replanning_at_every + 10
-                subgoal_pos = 10
-            _, samples = policy(cond, batch_size=args.batch_size)
-            plan = samples.observations
-            sequence = plan[0]
-            if k < args.horizon // replanning_at_every - 1:
-                k = k + 1
         if diffusion.horizon - subgoal_pos < 10:
-            subgoal = sequence[-1]
+            subgoal = sequence[-1] # 마지막 -> DF에서는 10 단위로 해서 문제가 없었던건지 질문하기!
         else:
             subgoal = sequence[subgoal_pos]
         action = agent.sample_action(observation, subgoal)
@@ -139,7 +154,7 @@ for i in range(n_samples):
         if terminal:
             break
 
-        if step > 1000:
+        if step > 1500:
             break
 
         observation = next_observation

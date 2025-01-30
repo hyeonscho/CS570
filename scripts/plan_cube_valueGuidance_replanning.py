@@ -9,7 +9,7 @@ import numpy as np
 from os.path import join
 import pdb
 
-from diffuser.guides.policies import TrueValueGuidedAntmazePolicy, TrueValueGuideAntmaze
+from diffuser.guides.policies import TrueValueGuidedCubePolicy, TrueValueGuidedCube
 import diffuser.datasets as datasets
 import diffuser.utils as utils
 
@@ -35,17 +35,20 @@ diffusion_experiment = utils.load_diffusion(args.logbase, args.dataset, args.dif
 diffusion = diffusion_experiment.ema
 dataset = diffusion_experiment.dataset
 renderer = diffusion_experiment.renderer
-guide = TrueValueGuideAntmaze('every', diffusion.horizon)
-policy = TrueValueGuidedAntmazePolicy(guide, diffusion, dataset.normalizer)
+guide = TrueValueGuidedCube('every', diffusion.horizon)
+policy = TrueValueGuidedCubePolicy(guide, diffusion, dataset.normalizer)
 
 # DQL Load
-from dql.main_Antmaze import hyperparameters
-from dql.agents.ql_diffusion import Diffusion_QL as Agent
+from dql_cube.main_Cube import hyperparameters
+from dql_cube.agents.ql_diffusion import Diffusion_QL as Agent
 params = hyperparameters[args.dataset]
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.shape[0]
 max_action = float(env.action_space.high[0])
+num_cubes =  (state_dim - 19) // 9
+
 agent = Agent(
+    env_name=args.dataset,
     state_dim=state_dim*2,
     action_dim=action_dim,
     max_action=max_action,
@@ -60,20 +63,23 @@ agent = Agent(
     lr_decay=False,
     lr_maxt=params["num_epochs"],
     grad_norm=params["gn"],
-    goal_dim=2,
+    #goal_dim=params["goal_dim"],
+    goal_dim= 3 * num_cubes,
     lcb_coef=4.0,
 )
 
-if args.dataset == "antmaze-medium-navigate-v0":
-    dql_folder = "antmaze-medium-navigate-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|2|1.0|False|cql_antmaze|0.2|4.0|10"
-elif args.dataset == "antmaze-large-navigate-v0":
-    dql_folder = "antmaze-large-navigate-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|2|1.0|False|cql_antmaze|0.2|4.0|10"
-elif args.dataset == "antmaze-giant-navigate-v0":
-    dql_folder = "antmaze-giant-navigate-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|2|1.0|False|cql_antmaze|0.2|4.0|10"
-elif args.dataset == "antmaze-teleport-navigate-v0":
-    dql_folder = "antmaze-teleport-navigate-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|2|1.0|False|cql_antmaze|0.2|4.0|10"
-agent.load_model(os.path.join(os.getcwd(), "logs", "dql", dql_folder), id=200)
-
+if args.dataset == "cube-single-play-v0":
+    dql_folder = "cube-single-play-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|3|1.0|False|cql_antmaze|0.2|4.0|10"
+    agent.load_model(os.path.join(os.getcwd(), "logs", "cube", dql_folder), id=200)
+elif args.dataset == "cube-double-play-v0":
+    dql_folder = "cube-double-play-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|6|1.0|False|cql_antmaze|0.2|4.0|10"
+    agent.load_model(os.path.join(os.getcwd(), "logs", "cube", dql_folder), id=2000)
+elif args.dataset == "cube-triple-play-v0":
+    dql_folder = "cube-triple-play-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|9|1.0|False|cql_antmaze|0.2|4.0|10"
+    agent.load_model(os.path.join(os.getcwd(), "logs", "cube", dql_folder), id=2000)
+elif args.dataset == "cube-quadruple-play-v0":
+    dql_folder = "cube-quadruple-play-v0|exp|diffusion-ql|T-5|lr_decay|ms-offline|k-1|0|12|1.0|False|cql_antmaze|0.2|4.0|10"
+    agent.load_model(os.path.join(os.getcwd(), "logs", "cube", dql_folder), id=2000)
 
 max_planning_steps = args.horizon #env.max_episode_steps
 replanning_at_every = 50
@@ -81,57 +87,59 @@ scores = []
 success_rate = []
 
 for i in range(n_samples):
-    env.set_task(task_id = (i % 5) + 1)
-    observation, info = env.reset()
-    target = env.cur_goal_xy # env.xy_to_ij(env.cur_goal_xy)
+    observation, info = env.reset(options=dict(task_id = (i % 5) + 1))
+    # env.set_task(task_id = (i % 5) + 1)
+    # observation, info = env.reset()
+    
+    goal = info['goal']
+    # obs = obs.reshape(1, -1)
+    # goal = np.array(goal).reshape(1, -1)
+    start = np.concatenate([observation[19+i*9:19+i*9+3] for i in range(num_cubes)], axis=-1)
+    goal = np.concatenate([goal[19+i*9:19+i*9+3] for i in range(num_cubes)], axis=-1)
+    # target = env.cur_goal_xy # env.xy_to_ij(env.cur_goal_xy)
 
     # planning에 필요한 cond
-    cond = {
-        diffusion.horizon - 1: np.array([*target]),
-        0: np.array([*(observation[:2])])
-    }
+    cond = {diffusion.horizon - 1: goal, 0: start}
 
     rollout = [observation.copy()]
     total_reward = 0
-    distance_threshold = 2
+    distance_threshold = 0.3
 
     _, samples = policy(cond, batch_size=args.batch_size)
     plan = samples.observations
     sequence = plan[0]
     subgoal_pos = 0
     step = 0
-    k = 0
+    k = 0 # 여기까지 함!!
 
     while True:
-        # print(k, len(rollout))
         if (len(rollout) - 1) % replanning_at_every == 0:
             if k == 0:
-                cond[0] = np.array([*(observation[:2])])
+                obs = np.concatenate([observation[19+k*9:19+k*9+3] for k in range(num_cubes)], axis=-1)
+                cond[0] = obs
             else:
-                # breakpoint()
-                cond = {
-                    diffusion.horizon - 1: np.array([*target]),
-                }
-                # breakpoint()
-                cond[0] = rollout[-1][:2]
-                # for j in range(k * replanning_at_every):
-                #     cond[j] = rollout[-(k *replanning_at_every) + j][:2]
-                # subgoal_pos = k * replanning_at_every + 10
-                subgoal_pos = 10
+                cond = {diffusion.horizon - 1: goal}
+                rollout_pos = np.array(rollout)
+                rollout_pos = np.concatenate([rollout_pos[:, 19+k*9:19+k*9+3] for k in range(num_cubes)], axis=-1)
+                for j in range(k * replanning_at_every):
+                    cond[j] = rollout_pos[-(k *replanning_at_every) + j]
+                subgoal_pos = k * replanning_at_every + 10
             _, samples = policy(cond, batch_size=args.batch_size)
             plan = samples.observations
             sequence = plan[0]
             if k < args.horizon // replanning_at_every - 1:
                 k = k + 1
+
         if diffusion.horizon - subgoal_pos < 10:
             subgoal = sequence[-1]
         else:
             subgoal = sequence[subgoal_pos]
         action = agent.sample_action(observation, subgoal)
         action = np.clip(action, -1, 1)
-        next_observation, reward, terminal, _, _ = env.step(action)
+        next_observation, reward, terminal, truncated, _ = env.step(action)
+        next_obs = np.concatenate([next_observation[19+k*9:19+k*9+3] for k in range(num_cubes)], axis=-1)
         step += 1
-        if np.linalg.norm(next_observation[:2] - subgoal[:2]) < 0.5:
+        if np.linalg.norm(next_obs - subgoal) < distance_threshold:
             subgoal_pos += 10
         total_reward += reward
         rollout.append(next_observation.copy())
@@ -139,12 +147,14 @@ for i in range(n_samples):
         if terminal:
             break
 
-        if step > 1000:
+        if step > env.max_episode_steps: # truncated
             break
-
+                
         observation = next_observation
-
-    plan_rollout = [np.array(plan)[0], np.array(rollout)]
+    
+    rollout_pos = np.array(rollout)
+    rollout_pos = np.concatenate([rollout_pos[:, 19+k*9:19+k*9+3] for k in range(num_cubes)], axis=-1)
+    plan_rollout = [np.array(plan)[0], np.array(rollout_pos)]
     renderer.composite(join(args.savepath, f'plan_rollout{i}.png'), plan_rollout, ncol=2)
 
     print(f" {i} / {n_samples}\t t: {step} | r: {reward:.2f} |  R: {total_reward:.2f} | ")
