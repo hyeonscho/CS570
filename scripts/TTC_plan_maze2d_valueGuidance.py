@@ -43,7 +43,7 @@ renderer = diffusion_experiment.renderer
 guide = TrueValueGuide('every', diffusion.horizon)
 epoch = copy.deepcopy(diffusion_experiment.epoch)
 normalizer = copy.deepcopy(dataset.normalizer)
-import ipdb; ipdb.set_trace()
+
 del diffusion_experiment # to save memory
 del dataset
 

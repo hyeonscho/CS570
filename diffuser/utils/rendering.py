@@ -47,6 +47,8 @@ def env_map(env_name):
         return "HopperFullObs-v2"
     elif "walker2d" in env_name:
         return "Walker2dFullObs-v2"
+    elif 'stitched' in env_name:
+        return env_name.split('stitched-')[1]
     else:
         return env_name
 
@@ -447,6 +449,8 @@ class MazeRenderer:
 
 class Maze2dRenderer(MazeRenderer):
     def __init__(self, env, observation_dim=None):
+        if 'stitched' in env:
+            env = env.split('stitched-')[1]
         self.env_name = env
         self.env = load_environment(env)
         # self._background = self.env.maze_arr == 10

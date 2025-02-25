@@ -8,7 +8,7 @@ import json
 import numpy as np
 from os.path import join
 import pdb
-
+import copy
 from diffuser.guides.policies import TrueValueGuidedPolicy_RS, TrueValueGuide
 import diffuser.datasets as datasets
 import diffuser.utils as utils
@@ -24,8 +24,7 @@ class Parser(utils.Parser):
 globalstart = time.time()
 n_samples = 50
 args = Parser().parse_args('plan', add_extras=True)
-args.savepath = args.savepath[:-1] + 'TTC_value_guidance_RS_multi_scale'
-save_path = args.savepath
+
 restricted_pd = args.restricted_pd
 
 
@@ -35,7 +34,8 @@ restricted_pd = args.restricted_pd
 # else:
 #     RS_samples = 60
 RS_samples = args.rs
-
+args.savepath = args.savepath[:-1] + f'TTC_value_guidance_RS_multi_scale_{RS_samples}'
+save_path = args.savepath
 def sample_and_rank(policy, cond, scale):
     _, samples = policy(cond, batch_size=RS_samples, scale=scale) 
 
@@ -71,7 +71,13 @@ diffusion = diffusion_experiment.ema
 dataset = diffusion_experiment.dataset
 renderer = diffusion_experiment.renderer
 guide = TrueValueGuide('every', diffusion.horizon)
-policy = TrueValueGuidedPolicy_RS(guide, diffusion, dataset.normalizer)
+epoch = copy.deepcopy(diffusion_experiment.epoch)
+normalizer = copy.deepcopy(dataset.normalizer)
+
+del diffusion_experiment # to save memory
+del dataset
+
+policy = TrueValueGuidedPolicy_RS(guide, diffusion, normalizer)
 
 # 여기서 horizon이 100이면 총 1000 step을 위해 10번 더 길게 반복
 max_planning_steps = args.horizon #env.max_episode_steps
@@ -151,7 +157,7 @@ for i in range(n_samples):
 
     json_path = join(args.savepath, f"idx{i}_rollout.json")
     json_data = {'step': t, 'return': total_reward, 'term': terminal,
-                 'epoch_diffusion': diffusion_experiment.epoch}
+                 'epoch_diffusion': epoch}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
     success_rate.append(total_reward > 0)
 
