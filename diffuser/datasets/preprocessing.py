@@ -1,3 +1,4 @@
+import gym
 import numpy as np
 import einops
 from scipy.spatial.transform import Rotation as R
@@ -11,7 +12,6 @@ from .d4rl import load_environment
 
 
 def compose(*fns):
-
     def _fn(x):
         for fn in fns:
             x = fn(x)
@@ -52,8 +52,16 @@ def arctanh_actions(*args, **kwargs):
     return _fn
 
 
-def add_deltas(env):
+def arccos_actions(*args, **kwargs):
+    def _fn(dataset):
+        actions = dataset["actions"]
+        dataset["actions"] = np.arctanh(actions)
+        return dataset
 
+    return _fn
+
+
+def add_deltas(env):
     def _fn(dataset):
         deltas = dataset["next_observations"] - dataset["observations"]
         dataset["deltas"] = deltas
@@ -62,16 +70,54 @@ def add_deltas(env):
     return _fn
 
 
+def postprocess_base(env):
+    def _fn(dataset):
+        dataset["observations"] = dataset["observations"]["observation"]
+        terminations = dataset["terminations"]
+        timeout_steps = np.where(terminations)[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
+            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
+        )
+
+        dataset["terminals"] = dataset["terminations"].copy()
+        dataset["timeouts"] = dataset["terminations"].copy()
+        dataset["rewards"] = dataset["terminations"].copy().astype(np.int32)
+        return dataset
+
+    return _fn
+
+def postprocess_stitched(env):
+    def _fn(dataset):
+        terminations = dataset["terminals"]
+        timeout_steps = np.where(terminations)[0]
+        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+        print(
+            f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
+            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
+        )
+
+        dataset["timeouts"] = dataset["terminals"]
+        return dataset
+
+    return _fn
+
+
 def maze2d_set_terminals(env):
     env = load_environment(env) if type(env) == str else env
-    goal = np.array(env._target)
+    goal = np.array(env._target) # (7, 9) for large maze
     threshold = 0.5
 
     def _fn(dataset):
+        # from diffuser.utils.debug import debug
+        # debug()
         xy = dataset["observations"][:, :2]
         distances = np.linalg.norm(xy - goal, axis=-1)
         at_goal = distances < threshold
-        timeouts = np.zeros_like(dataset["timeouts"])
+        timeouts = np.zeros_like(dataset["rewards"])
 
         ## timeout at time t iff
         ##      at goal at time t and
@@ -83,13 +129,47 @@ def maze2d_set_terminals(env):
 
         print(
             f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
-            f"min length: {path_lengths.min()} | max length: {path_lengths.max()}"
+            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
         )
 
         dataset["timeouts"] = timeouts
+        dataset["terminals"] = np.zeros_like(dataset["terminals"])
         return dataset
 
     return _fn
+
+
+# def maze2d_set_terminals(env):
+#     env = load_environment(env) if type(env) == str else env
+#     goal = np.array(env._target)
+#     threshold = 0.5
+
+#     def _fn(dataset):
+#         from diffuser.utils.debug import debug
+#         debug()
+#         xy = dataset["observations"][:, :2]
+#         distances = np.linalg.norm(xy - goal, axis=-1)
+#         at_goal = distances < threshold
+#         timeouts = np.zeros_like(dataset["rewards"])
+
+#         ## timeout at time t iff
+#         ##      at goal at time t and
+#         ##      not at goal at time t + 1
+#         timeouts[:-1] = at_goal[:-1] * ~at_goal[1:]
+
+#         timeout_steps = np.where(dataset["timeouts"])[0]
+#         path_lengths = timeout_steps[1:] - timeout_steps[:-1]
+
+#         print(
+#             f"[ utils/preprocessing ] Segmented {env.name} | {len(path_lengths)} paths | "
+#             f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
+#         )
+
+#         dataset["timeouts"] = dataset["timeouts"]
+#         dataset["terminals"] = np.zeros_like(dataset["terminals"])
+#         return dataset
+
+#     return _fn
 
 
 # -------------------------- block-stacking --------------------------#
@@ -184,7 +264,6 @@ def blocks_euler_to_quat(paths):
 
 
 def blocks_process_cubes(env):
-
     def _fn(dataset):
         for key in ["observations", "next_observations"]:
             dataset[key] = blocks_quat_to_euler(dataset[key])
@@ -194,7 +273,6 @@ def blocks_process_cubes(env):
 
 
 def blocks_remove_kuka(env):
-
     def _fn(dataset):
         for key in ["observations", "next_observations"]:
             dataset[key] = dataset[key][:, 7:]
@@ -317,40 +395,12 @@ def blocks_delta_quat_helper(observations, next_observations):
 
 
 def blocks_add_deltas(env):
-
     def _fn(dataset):
         deltas = blocks_delta_quat_helper(
             dataset["observations"], dataset["next_observations"]
         )
         # deltas = dataset['next_observations'] - dataset['observations']
         dataset["deltas"] = deltas
-        return dataset
-
-    return _fn
-
-
-def antmaze_set_terminals_v2(env):
-
-    threshold = 0.5
-
-    def _fn(dataset):
-        xy = dataset["observations"]["observation"][:, :2]
-        dataset["observations"] = dataset["observations"]["observation"]
-
-        ## timeout at time t iff
-        ##      at goal at time t and
-        ##      not at goal at time t + 1
-        terminations = dataset["terminations"]
-        timeout_steps = np.where(terminations)[0]
-        path_lengths = timeout_steps[1:] - timeout_steps[:-1]
-
-        print(
-            f"[ utils/preprocessing ] Segmented {env} | {len(path_lengths)} paths "
-            f"min length: {path_lengths.min()} | max length: {path_lengths.max()} | mean length: {path_lengths.mean()}"
-        )
-
-        dataset["terminals"] = dataset["terminations"]
-        dataset["rewards"] = dataset["terminations"]
         return dataset
 
     return _fn

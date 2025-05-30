@@ -1,278 +1,161 @@
 import os
 import sys
 
+os.environ["MUJOCO_GL"] = "egl"
+os.environ["MUJOCO_RENDERER"] = "egl"
+
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tqdm import tqdm
-import argparse
-import time
+
 import diffuser.utils as utils
-import torch
-import importlib
-import numpy as np
-import pdb
+from torch.utils.tensorboard import SummaryWriter
 
 
-def import_config(config_name):
-    module_path = f"detail_configs.{config_name}"
-    try:
-        module = importlib.import_module(module_path)
-        return module.Config
-    except ImportError:
-        print(f"Error: Module '{config_name}' not found or has no 'Config' attribute.")
-        return None
+# -----------------------------------------------------------------------------#
+# ----------------------------------- setup -----------------------------------#
+# -----------------------------------------------------------------------------#
 
 
-def main(**deps):
-    from ml_logger import logger
-
-    Config = import_config(config_name=deps["config"])
-
-    Config._update(deps)
-    Config.device = torch.device(Config.device)
-
-    BASE_WEIGHTS_PATH = os.path.join(Config.bucket, Config.dataset)
-    save_config_path = os.path.join(BASE_WEIGHTS_PATH, Config.prefix, "config")
-
-    logger.configure(save_config_path)
-    logger.log_params(Config=vars(Config))
-
-    torch.backends.cudnn.benchmark = True
-    utils.set_seed(Config.seed)
-    # -----------------------------------------------------------------------------#
-    # ---------------------------------- dataset ----------------------------------#
-    # -----------------------------------------------------------------------------#
-    dataset_config = utils.Config(
-        Config.loader,
-        savepath="dataset_config.pkl",
-        env=Config.dataset,
-        horizon=Config.horizon,
-        normalizer=Config.normalizer,
-        preprocess_fns=Config.preprocess_fns,
-        use_padding=Config.use_padding,
-        max_path_length=Config.max_path_length,
-        include_returns=Config.include_returns,
-        returns_scale=Config.returns_scale,
-        discount=Config.discount,
-        termination_penalty=Config.termination_penalty,
-        data_file=Config.data_file,
-        stitch=Config.stitch,
-        task_data=Config.task_data,
-        aug_data_file=Config.aug_data_file,
-        jump=Config.jump,
-        segment_return=Config.segment_return,
-        jumps=Config.jumps,
-        task_len=Config.task_len,
-        act_pad=Config.act_pad,
-        cum_rew=Config.cum_rew,
-    )
-
-    render_config = utils.Config(
-        Config.renderer,
-        savepath="render_config.pkl",
-        env=Config.dataset,
-    )
-
-    dataset = dataset_config()
-    renderer = None
-    if "kitchen" in Config.dataset:
-        renderer = None
-    observation_dim = dataset.observation_dim
-    action_dim = dataset.action_dim
-
-    # -----------------------------------------------------------------------------#
-    # ------------------------------ model & trainer ------------------------------#
-    # -----------------------------------------------------------------------------#
-    if Config.diffusion == "models.GaussianInvDynDiffusion":
-        if Config.act_pad:
-            jump = Config.jump
-            observation_dim = observation_dim + jump * action_dim
-        model_config = utils.Config(
-            Config.model,
-            savepath="model_config.pkl",
-            horizon=int(np.ceil(Config.horizon / Config.jump)),
-            transition_dim=observation_dim,
-            cond_dim=observation_dim,
-            dim_mults=Config.dim_mults,
-            returns_condition=Config.returns_condition,
-            dim=Config.dim,
-            condition_dropout=Config.condition_dropout,
-            calc_energy=Config.calc_energy,
-            device=Config.device,
-            ll=True,
-        )
-        diffusion_config = utils.Config(
-            Config.diffusion,
-            savepath="diffusion_config.pkl",
-            horizon=int(np.ceil(Config.horizon / Config.jump)),
-            observation_dim=observation_dim,
-            action_dim=action_dim,
-            n_timesteps=Config.n_diffusion_steps,
-            loss_type=Config.loss_type,
-            clip_denoised=Config.clip_denoised,
-            predict_epsilon=Config.predict_epsilon,
-            hidden_dim=Config.hidden_dim,
-            ar_inv=Config.ar_inv,
-            train_only_inv=Config.train_only_inv,
-            train_only_diffuser=Config.train_only_diffuser,
-            ## loss weighting
-            action_weight=Config.action_weight,
-            loss_weights=Config.loss_weights,
-            loss_discount=Config.loss_discount,
-            returns_condition=Config.returns_condition,
-            condition_guidance_w=Config.condition_guidance_w,
-            device=Config.device,
-            act_pad=Config.act_pad,
-        )
-    elif Config.diffusion == "models.GaussianInvDynDiffusionCL":
-        num_level = len(Config.jumps)
-        if Config.level_dim:
-            level_dim = Config.level_dim
-        else:
-            level_dim = num_level
-
-        if Config.act_pad:
-            jump = Config.jump
-            observation_dim = observation_dim + action_dim
-        model_config = utils.Config(
-            Config.model,
-            savepath="model_config.pkl",
-            horizon=dataset.segmt_len,
-            transition_dim=observation_dim + level_dim,
-            cond_dim=observation_dim,
-            dim_mults=Config.dim_mults,
-            returns_condition=Config.returns_condition,
-            dim=Config.dim,
-            condition_dropout=Config.condition_dropout,
-            calc_energy=Config.calc_energy,
-            device=Config.device,
-            ll=True,
-            level_dim=level_dim,
-            level_condition=Config.level_condition,
-        )
-        diffusion_config = utils.Config(
-            Config.diffusion,
-            savepath="diffusion_config.pkl",
-            horizon=dataset.segmt_len,
-            observation_dim=observation_dim,
-            action_dim=action_dim,
-            n_timesteps=Config.n_diffusion_steps,
-            loss_type=Config.loss_type,
-            clip_denoised=Config.clip_denoised,
-            predict_epsilon=Config.predict_epsilon,
-            hidden_dim=Config.hidden_dim,
-            ar_inv=Config.ar_inv,
-            train_only_inv=Config.train_only_inv,
-            train_only_diffuser=Config.train_only_diffuser,
-            ## loss weighting
-            action_weight=Config.action_weight,
-            loss_weights=Config.loss_weights,
-            loss_discount=Config.loss_discount,
-            returns_condition=Config.returns_condition,
-            condition_guidance_w=Config.condition_guidance_w,
-            device=Config.device,
-            level_dim=Config.level_dim,
-            num_level=len(Config.jumps),
-            level_condition=Config.level_condition,
-            act_pad=Config.act_pad,
-        )
-    else:
-        model_config = utils.Config(
-            Config.model,
-            savepath="model_config.pkl",
-            horizon=Config.horizon,
-            transition_dim=observation_dim + action_dim,
-            cond_dim=observation_dim,
-            dim_mults=Config.dim_mults,
-            returns_condition=Config.returns_condition,
-            dim=Config.dim,
-            condition_dropout=Config.condition_dropout,
-            calc_energy=Config.calc_energy,
-            device=Config.device,
-        )
-
-        diffusion_config = utils.Config(
-            Config.diffusion,
-            savepath="diffusion_config.pkl",
-            horizon=Config.horizon,
-            observation_dim=observation_dim,
-            action_dim=action_dim,
-            n_timesteps=Config.n_diffusion_steps,
-            loss_type=Config.loss_type,
-            clip_denoised=Config.clip_denoised,
-            predict_epsilon=Config.predict_epsilon,
-            ## loss weighting
-            action_weight=Config.action_weight,
-            loss_weights=Config.loss_weights,
-            loss_discount=Config.loss_discount,
-            returns_condition=Config.returns_condition,
-            condition_guidance_w=Config.condition_guidance_w,
-            device=Config.device,
-        )
-
-    trainer_config = utils.Config(
-        utils.Trainer,
-        savepath="trainer_config.pkl",
-        train_batch_size=Config.batch_size,
-        train_lr=Config.learning_rate,
-        gradient_accumulate_every=Config.gradient_accumulate_every,
-        ema_decay=Config.ema_decay,
-        sample_freq=Config.sample_freq,
-        save_freq=Config.save_freq,
-        log_freq=Config.log_freq,
-        label_freq=int(Config.n_train_steps // Config.n_saves),
-        save_parallel=Config.save_parallel,
-        bucket=os.path.join(Config.bucket, Config.dataset, Config.prefix),
-        n_reference=Config.n_reference,
-        n_samples=Config.n_samples,
-        train_device=Config.device,
-        save_checkpoints=Config.save_checkpoints,
-        env=Config.dataset,
-    )
-
-    # -----------------------------------------------------------------------------#
-    # -------------------------------- instantiate --------------------------------#
-    # -----------------------------------------------------------------------------#
-
-    model = model_config()
-
-    diffusion = diffusion_config(model)
-
-    trainer = trainer_config(diffusion, dataset, renderer)
-    start_epoch = 0
-    if Config.resume_step != 0:
-        resume_path = os.path.join(
-            Config.bucket, Config.dataset, Config.prefix, "checkpoint"
-        )
-        resume_ckpt = os.path.join(resume_path, f"state_{Config.resume_step}.pt")
-        state_dict = torch.load(resume_ckpt, map_location=Config.device)
-        trainer.step = state_dict["step"]
-        trainer.model.load_state_dict(state_dict["model"])
-        trainer.ema_model.load_state_dict(state_dict["ema"])
-        start_epoch = trainer.step // Config.n_steps_per_epoch
-
-    # -----------------------------------------------------------------------------#
-    # ------------------------ test forward & backward pass -----------------------#
-    # -----------------------------------------------------------------------------#
-
-    utils.report_parameters(model)
-
-    logger.print("Testing forward...", end=" ", flush=True)
-    logger.print("✓")
-
-    # -----------------------------------------------------------------------------#
-    # --------------------------------- main loop ---------------------------------#
-    # -----------------------------------------------------------------------------#
-
-    n_epochs = int(Config.n_train_steps // Config.n_steps_per_epoch)
-
-    for i in tqdm(range(start_epoch, n_epochs + 1)):
-        logger.print(f"Epoch {i} / {n_epochs} | {logger.prefix}")
-        trainer.train(n_train_steps=Config.n_steps_per_epoch)
+class Parser(utils.Parser):
+    dataset: str = None
+    config: str = None
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("DiffStitch", add_help=False)
-    parser.add_argument("--config", type=str)
-    parser.add_argument("--device", default="cuda:0", type=str)
-    args = vars(parser.parse_args())
-    main(**args)
+args = Parser().parse_args("diffusion")
+
+# -----------------------------------------------------------------------------#
+# ---------------------------------- dataset ----------------------------------#
+# -----------------------------------------------------------------------------#
+# Previous models used only the 10k last episodes -> I do not want to mess up with their training
+progressive_distillation = args.progressive_distillation if hasattr(args, "progressive_distillation") else False
+teacher_path = args.teacher_path if hasattr(args, "teacher_path") else None
+
+dataset_config = utils.Config(
+    args.loader,
+    savepath=(args.savepath, "dataset_config.pkl"),
+    env=args.dataset,
+    horizon=args.horizon,
+    normalizer=args.normalizer,
+    preprocess_fns=args.preprocess_fns,
+    use_padding=args.use_padding,
+    max_path_length=args.max_path_length,
+    jump=args.jump,
+    jump_action=args.jump_action,
+)
+
+render_config = utils.Config(
+    args.renderer,
+    savepath=(args.savepath, "render_config.pkl"),
+    env=args.dataset,
+)
+
+dataset = dataset_config()
+renderer = render_config()
+
+observation_dim = dataset.observation_dim
+action_dim = dataset.action_dim * args.jump
+if args.jump_action == "none":
+    action_dim = 0
+
+
+# -----------------------------------------------------------------------------#
+# ------------------------------ model & trainer ------------------------------#
+# -----------------------------------------------------------------------------#
+
+model_config = utils.Config(
+    args.model,
+    savepath=(args.savepath, "model_config.pkl"),
+    horizon=args.horizon // args.jump,
+    transition_dim=observation_dim + action_dim,
+    cond_dim=observation_dim,
+    dim=args.dim,
+    dim_mults=args.dim_mults,
+    kernel_size=args.kernel_size,
+    device=args.device,
+    upsample_k=args.upsample_k,
+    downsample_k=args.downsample_k,
+)
+
+diffusion_config = utils.Config(
+    args.diffusion,
+    savepath=(args.savepath, "diffusion_config.pkl"),
+    horizon=args.horizon // args.jump,
+    condition=args.condition,
+    observation_dim=observation_dim,
+    action_dim=action_dim,
+    n_timesteps=args.n_diffusion_steps,
+    loss_type=args.loss_type,
+    clip_denoised=args.clip_denoised,
+    predict_epsilon=args.predict_epsilon,
+    ## loss weighting
+    action_weight=args.action_weight,
+    loss_weights=args.loss_weights,
+    loss_discount=args.loss_discount,
+    device=args.device,
+)
+
+trainer_config = utils.Config(
+    utils.Trainer,
+    savepath=(args.savepath, "trainer_config.pkl"),
+    train_batch_size=args.batch_size,
+    train_lr=args.learning_rate,
+    gradient_accumulate_every=args.gradient_accumulate_every,
+    ema_decay=args.ema_decay,
+    sample_freq=args.sample_freq,
+    save_freq=args.save_freq,
+    label_freq=int(args.n_train_steps // args.n_saves),
+    save_parallel=args.save_parallel,
+    results_folder=args.savepath,
+    bucket=args.bucket,
+    n_reference=args.n_reference,
+    n_samples=args.n_samples,
+)
+
+# -----------------------------------------------------------------------------#
+# -------------------------------- instantiate --------------------------------#
+# -----------------------------------------------------------------------------#
+
+model = model_config()
+if progressive_distillation:
+    assert teacher_path is not None, "Teacher path must be provided for progressive distillation."
+    import copy, torch
+    # teacher_model = copy.deepcopy(model).to(args.device)
+    # state_dict = torch.load(teacher_path, map_location=args.device)
+    # if "model" in state_dict:
+    #     state_dict = state_dict["model"]  # Extract model parameters if nested
+    # filtered_state_dict = {k: v for k, v in state_dict.items() if k in teacher_model.state_dict()}
+    # teacher_model.load_state_dict(filtered_state_dict, strict=False)
+    # teacher_model.eval()
+    # teacher_model.n_timesteps = args.n_diffusion_steps * 4
+    teacher_model = utils.load_diffusion(args.logbase, args.dataset, args.teacher_path, epoch='latest').ema
+else:
+    teacher_model = None
+diffusion = diffusion_config(model)
+
+trainer = trainer_config(diffusion, dataset, renderer)
+
+
+# -----------------------------------------------------------------------------#
+# ------------------------ test forward & backward pass -----------------------#
+# -----------------------------------------------------------------------------#
+
+utils.report_parameters(model)
+
+print("Testing forward...", end=" ", flush=True)
+batch = utils.batchify(dataset[0])
+loss, _ = diffusion.loss(*batch, teacher_model=teacher_model)
+loss.backward()
+print("✓")
+
+
+# -----------------------------------------------------------------------------#
+# --------------------------------- main loop ---------------------------------#
+# -----------------------------------------------------------------------------#
+
+n_epochs = int(args.n_train_steps // args.n_steps_per_epoch)
+eval_sample_n = 3
+
+train_writer = SummaryWriter(log_dir=args.savepath + "-train")
+for i in range(n_epochs):
+    print(f"Epoch {i} / {n_epochs} | {args.savepath}")
+    trainer.train(n_train_steps=args.n_steps_per_epoch, writer=train_writer, teacher_model=teacher_model)

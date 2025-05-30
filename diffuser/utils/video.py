@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import skvideo.io
-from ml_logger import logger
 
 def _make_dir(filename):
     folder = os.path.dirname(filename)
@@ -10,7 +9,6 @@ def _make_dir(filename):
 
 def save_video(filename, video_frames, fps=60, video_format='mp4'):
     assert fps == int(fps), fps
-    # logger.save_video(video_frames, filename, fps=fps, format=video_format)
     _make_dir(filename)
 
     skvideo.io.vwrite(

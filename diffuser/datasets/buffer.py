@@ -1,4 +1,12 @@
 import numpy as np
+import collections
+from .preprocessing import get_preprocess_fn
+from .d4rl import load_environment, sequence_dataset, process_maze2d_episode
+from .normalization import DatasetNormalizer
+from collections import namedtuple
+from .fake_env import FakeEnv
+import matplotlib.pyplot as plt
+import torch
 import pdb
 
 
@@ -8,11 +16,19 @@ def atleast_2d(x):
     return x
 
 
-class ReplayBuffer:
+Batch = namedtuple("Batch", "trajectories conditions")
+ValueBatch = namedtuple("ValueBatch", "trajectories conditions values")
 
-    def __init__(self, max_n_episodes, max_path_length, termination_penalty):
+
+class ReplayBuffer:
+    def __init__(
+        self,
+        max_n_episodes,
+        max_path_length,
+        termination_penalty,
+    ):
         self._dict = {
-            "path_lengths": np.zeros(max_n_episodes, dtype=np.int_),
+            "path_lengths": np.zeros(max_n_episodes, dtype=np.int32),
         }
         self._count = 0
         self.max_n_episodes = max_n_episodes
@@ -53,7 +69,9 @@ class ReplayBuffer:
             setattr(self, key, val)
 
     def items(self):
-        return {k: v for k, v in self._dict.items() if k != "path_lengths"}.items()
+        return {
+            k: v for k, v in self._dict.items() if k not in ["path_lengths"]
+        }.items()
 
     def _allocate(self, key, array):
         assert key not in self._dict
@@ -63,13 +81,14 @@ class ReplayBuffer:
         # print(f'[ utils/mujoco ] Allocated {key} with size {shape}')
 
     def add_path(self, path):
+        if self._count >= self.max_n_episodes:
+            return
+
+        # for antmaze
+        obs = path["observations"]
+
         path_length = len(path["observations"])
         assert path_length <= self.max_path_length
-
-        if path["terminals"].any():
-            assert (path["terminals"][-1] == True) and (
-                not path["terminals"][:-1].any()
-            )
 
         ## if first path added, set keys based on contents
         self._add_keys(path)
@@ -83,10 +102,9 @@ class ReplayBuffer:
 
         ## penalize early termination
         if path["terminals"].any() and self.termination_penalty is not None:
-            if "timeouts" in path:
-                assert not path[
-                    "timeouts"
-                ].any(), "Penalized a timeout episode for early termination"
+            assert not path[
+                "timeouts"
+            ].any(), "Penalized a timeout episode for early termination"
             self._dict["rewards"][
                 self._count, path_length - 1
             ] += self.termination_penalty
@@ -107,7 +125,4 @@ class ReplayBuffer:
         for key in self.keys + ["path_lengths"]:
             self._dict[key] = self._dict[key][: self._count]
         self._add_attributes()
-        avg_path_len = np.mean(self._dict["path_lengths"][: self._count])
-        print(
-            f"[ datasets/buffer ] Finalized replay buffer | {self._count} episodes  | Avg path lengths {avg_path_len:.2f}"
-        )
+        print(f"[ datasets/buffer ] Finalized replay buffer | {self._count} episodes")
