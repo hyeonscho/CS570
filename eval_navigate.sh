@@ -1,11 +1,16 @@
 #!/bin/bash
 
-env_names=('giant' 'teleport')
-# datasets=('pointmaze-medium-navigate-v0' 'pointmaze-large-navigate-v0' 'pointmaze-giant-navigate-v0' 'pointmaze-teleport-navigate-v0')
-
-for env_name in "${env_names[@]}"; do
-    echo "Running for environment: $env_name"
-    python scripts/plan_maze2d.py --config config.og_navigate_$env_name --dataset "pointmaze-$env_name-navigate-v0"
-done
+python scripts/plan_maze2d_valueGuidance.py --config config.og_navigate_giant_valueGuidance_1000 --dataset "pointmaze-giant-navigate-v0"
+python scripts/plan_maze2d_valueGuidance.py --config config.og_navigate_large_valueGuidance_500 --dataset "pointmaze-large-navigate-v0"
+python scripts/plan_maze2d_valueGuidance.py --config config.og_navigate_medium_valueGuidance_500 --dataset "pointmaze-medium-navigate-v0"
+python scripts/plan_maze2d_nav_replanning_valueGuidance.py --config config.og_navigate_medium_valueGuidance_500 --dataset "pointmaze-medium-navigate-v0"
+python scripts/plan_maze2d_nav_replanning_valueGuidance.py --config config.og_navigate_large_valueGuidance_500 --dataset "pointmaze-large-navigate-v0"
+python scripts/plan_maze2d_nav_replanning_valueGuidance.py --config config.og_navigate_giant_valueGuidance_1000 --dataset "pointmaze-giant-navigate-v0"
+python scripts/plan_maze2d_antmaze_valueGuidance.py --config config.og_antmaze_navigate_medium_valueGuidance_500 --dataset "antmaze-medium-navigate-v0"
+python scripts/plan_maze2d_antmaze_valueGuidance.py --config config.og_antmaze_navigate_large_valueGuidance_500 --dataset "antmaze-large-navigate-v0"
+python scripts/plan_maze2d_antmaze_valueGuidance.py --config config.og_antmaze_navigate_giant_valueGuidance_1000 --dataset "antmaze-giant-navigate-v0"
+python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_medium_valueGuidance_500 --dataset "antmaze-medium-navigate-v0"
+python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_large_valueGuidance_500 --dataset "antmaze-large-navigate-v0"
+python scripts/plan_maze2d_antmaze_replanning_valueGuidance.py --config config.og_antmaze_navigate_giant_valueGuidance_1000 --dataset "antmaze-giant-navigate-v0"
 
 echo "All tasks completed."

@@ -117,15 +117,13 @@ class Trainer(object):
     # ------------------------------------ api ------------------------------------#
     # -----------------------------------------------------------------------------#
 
-    def train(self, n_train_steps, writer=None):
+    def train(self, n_train_steps, writer=None, teacher_model=None):
         timer = Timer()
         for step in range(n_train_steps):
             for i in range(self.gradient_accumulate_every):
                 batch = next(self.dataloader)
                 batch = batch_to_device(batch)
-
-                loss, infos = self.model.loss(*batch)
-
+                loss, infos = self.model.loss(*batch, teacher_model=teacher_model)
                 loss = loss / self.gradient_accumulate_every
                 loss.backward()
 

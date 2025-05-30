@@ -1,5 +1,5 @@
-# FROM USERNAME/rlx:torch
-FROM doojin/rlx:torch
+FROM USERNAME/rlx:torch
+# FROM doojin/rlx:torch
 
 # ENV PATH="/root/miniconda3/bin:${PATH}"
 # ARG PATH="/root/miniconda3/bin:${PATH}"

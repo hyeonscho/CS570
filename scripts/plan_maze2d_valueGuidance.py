@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import numpy as np
 from os.path import join
-import pdb
+import time
 
 from diffuser.guides.policies import TrueValueGuidedPolicy, TrueValueGuide
 import diffuser.datasets as datasets
@@ -22,13 +22,17 @@ class Parser(utils.Parser):
 #---------------------------------- setup ----------------------------------#
 n_samples = 50
 args = Parser().parse_args('plan', add_extras=True)
-args.savepath = args.savepath[:-1] + 'value_guidance'
+args.savepath = args.savepath[:-1] + 'time_log'
 save_path = args.savepath
 restricted_pd = args.restricted_pd
 
 from diffuser.utils.serialization import mkdir
 mkdir(save_path)
-env = datasets.load_environment(args.dataset)
+
+if 'stitched' in args.dataset:
+    env = datasets.load_environment(args.dataset.split('stitched-')[1])
+else:
+    env = datasets.load_environment(args.dataset)
 
 diffusion_experiment = utils.load_diffusion(
     args.logbase, args.dataset, args.diffusion_loadpath, epoch=args.diffusion_epoch
@@ -41,11 +45,12 @@ guide = TrueValueGuide('every', diffusion.horizon)
 policy = TrueValueGuidedPolicy(guide, diffusion, dataset.normalizer)
 
 # 여기서 horizon이 100이면 총 1000 step을 위해 10번 더 길게 반복
-max_planning_steps = args.horizon #env.max_episode_steps
+# max_planning_steps = args.horizon #env.max_episode_steps
+max_planning_steps = 1000 if 'giant' in args.dataset else 500
+
 
 scores = []
 success_rate = []
-
 for i in range(n_samples):
     env.set_task(task_id = (i % 5) + 1)
     observation, info = env.reset()
@@ -62,7 +67,7 @@ for i in range(n_samples):
     distance_threshold = 2
     plan = None
     sequence = None
-
+    start_time = time.time()
     for t in range(max_planning_steps):
         if t % diffusion.horizon == 0: # start
             cond[0] = observation
@@ -72,6 +77,7 @@ for i in range(n_samples):
             # breakpoint()
 
             _, samples = policy(cond, batch_size=args.batch_size)
+            planning_time = time.time() - start_time
             plan = samples.observations
             sequence = plan[0]
 
@@ -80,7 +86,6 @@ for i in range(n_samples):
             next_waypoint = sequence[t+1]
         else:
             if restricted_pd:
-                breakpoint()
                 xy = observation.copy()[:2]
                 goal = env._target
                 target_goal_dist = np.linalg.norm(xy - goal)
@@ -113,7 +118,7 @@ for i in range(n_samples):
 
     json_path = join(args.savepath, f"idx{i}_rollout.json")
     json_data = {'step': t, 'return': total_reward, 'term': terminal,
-                 'epoch_diffusion': diffusion_experiment.epoch}
+                 'epoch_diffusion': diffusion_experiment.epoch, 'planning_time': planning_time}
     json.dump(json_data, open(json_path, 'w'), indent=2, sort_keys=True)
     success_rate.append(total_reward > 0)
 
@@ -121,3 +126,4 @@ _success_rate = np.sum(success_rate)/n_samples*100
 print(f"success rate: {_success_rate:.2f}%")
 json_path = join(args.savepath, "success_rate.json")
 json.dump({'success_rate:': _success_rate}, open(json_path, 'w'))
+

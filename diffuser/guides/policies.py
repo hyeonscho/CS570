@@ -106,7 +106,7 @@ class TrueValueGuidedPolicy:
     def __call__(self, conditions, batch_size=1, **kwargs):
         # breakpoint()
         scale = kwargs.get('scale', self.scale)
-        print('scale', scale)
+        # print('scale', scale)
         conditions = self._format_conditions(conditions, batch_size)
         ## batchify and move to tensor [ batch_size x observation_dim ]
         # observation_np = observation_np[None].repeat(batch_size, axis=0)
@@ -227,7 +227,7 @@ class TrueValueGuidedPolicy_RS:
     def __call__(self, conditions, batch_size=1, **kwargs):
         # breakpoint()
         scale = kwargs.get('scale', self.scale)
-        print('scale', scale)
+        # print('scale', scale)
         scale = torch.tensor(scale).to(device = self.diffusion_model.betas.device)
         conditions = self._format_conditions(conditions, batch_size)
         ## batchify and move to tensor [ batch_size x observation_dim ]
@@ -289,7 +289,152 @@ class TrueValueGuidedPolicy_RS:
         # else:
         #     return action, trajectories
         return action, trajectories
+
+class TrueValueGuidedPolicy_GuidanceAtEachStep:
+
+    def __init__(self, guide, diffusion_model, normalizer, n_guide_steps=5, scales=[0.1], t_stopgrad=2, scale_grad_by_std=True):
+        self.guide = guide
+        self.diffusion_model = diffusion_model
+        self.normalizer = normalizer
+        self.action_dim = diffusion_model.action_dim
+        self.n_guide_steps = n_guide_steps
+        self.scales = scales
+        self.t_stopgrad = t_stopgrad
+        self.scale_grad_by_std = scale_grad_by_std
+
+    def _format_conditions(self, conditions, batch_size):
+        conditions = utils.apply_dict(
+            self.normalizer.normalize,
+            conditions,
+            "observations",
+        )
+        conditions = utils.to_torch(conditions, dtype=torch.float32, device='cuda:0')
+        if batch_size >= 1:
+            conditions = utils.apply_dict(
+                einops.repeat,
+                conditions,
+                "d -> repeat d",
+                repeat=batch_size,
+            )
+        return conditions
     
+    def n_step_guided_p_sample(self, model, x, cond, t, guide, scale=1.0, t_stopgrad=0, n_guide_steps=100, scale_grad_by_std=True):
+        model_log_variance = helpers.extract(model.posterior_log_variance_clipped, t, x.shape)
+        model_std = torch.exp(0.5 * model_log_variance)
+        model_var = torch.exp(model_log_variance)
+        
+        traj_cond = {0: cond[0]}
+        for _ in range(n_guide_steps):
+            with torch.enable_grad():
+                x_g = self.diffusion_model.predict_start_from_noise(x, t, self.diffusion_model.model(x, traj_cond, t))
+                y, grad = guide.gradients(x_g, cond, t)
+            
+            if scale_grad_by_std:
+                grad = model_var * grad
+            
+            grad[t < t_stopgrad] = 0
+            
+            x = x + scale * grad
+            x = helpers.apply_conditioning(x, traj_cond, model.action_dim)
+            
+        model_mean, _, model_log_variance = model.p_mean_variance(x=x, cond=cond, t=t)
+        
+        # no noise when t == 0
+        
+        noise = torch.randn_like(x)
+        noise[t == 0] = 0
+        
+        return model_mean + model_std * noise, y
+    
+    def __call__(self, conditions, batch_size=1, **kwargs):
+        # breakpoint()
+        # scale = kwargs.get('scale', self.scale)
+        # print('scale', scale)
+        conditions = self._format_conditions(conditions, batch_size)
+        ## batchify and move to tensor [ batch_size x observation_dim ]
+        # observation_np = observation_np[None].repeat(batch_size, axis=0)
+        # observation = utils.to_torch(observation_np, device=self.device)
+
+        ## run reverse diffusion process
+        # sample = self.diffusion_model(conditions)
+
+        with torch.no_grad():
+            device = self.diffusion_model.betas.device
+            horizon = self.diffusion_model.horizon
+            shape = (batch_size, horizon, self.diffusion_model.transition_dim)
+            x = torch.randn(shape, device=device)
+            x = helpers.apply_conditioning(x, {0: conditions[0]}, self.diffusion_model.action_dim, self.diffusion_model.observation_dim)
+            # if return_statistics:
+            #     additional_info = {}
+            #     values_in_denoising = []
+            #     pred_trajs_for_value_estimations = []
+            # progress = utils.Progress(self.diffusion_model.n_timesteps)
+            for i in reversed(range(0, self.diffusion_model.n_timesteps)):
+                timesteps = torch.full((batch_size,), i, device=device, dtype=torch.long)
+                plans = []
+
+                for scale in self.scales:
+                    # breakpoint()
+                    x_, val = self.n_step_guided_p_sample(self.diffusion_model, x, conditions, timesteps, 
+                                            self.guide, scale, self.t_stopgrad, self.n_guide_steps, self.scale_grad_by_std)
+                    
+                    x_ = helpers.apply_conditioning(x_, {0: conditions[0]}, self.diffusion_model.action_dim, self.diffusion_model.observation_dim)
+                    plans.append(x_)
+
+                # 여기서 하나 선택해야함
+                x = self.sample_and_rank(plans, conditions)
+                # print(i)
+            # breakpoint()
+
+        sample = utils.to_np(x)
+
+        ## extract action [ batch_size x horizon x transition_dim ]
+        actions = sample[:, :, : self.diffusion_model.action_dim]
+        actions = self.normalizer.unnormalize(actions, 'actions')
+        # actions = np.tanh(actions)
+
+        ## extract first action
+        action = actions[0, 0]
+
+        # if debug:
+        normed_observations = sample[:, :, self.action_dim:]
+        observations = self.normalizer.unnormalize(normed_observations, 'observations')
+        # if return_statistics:
+        #     pred_trajs_for_value_estimations = torch.stack([
+        #         self.normalizer.unnormalize(pred_traj[..., self.action_dim:],
+        #                                     'observations') for pred_traj in pred_trajs_for_value_estimations])
+        #     pred_trajs_for_value_estimations = utils.to_np(pred_trajs_for_value_estimations)
+        #     additional_info["pred_trajs_for_value_estimation"] = pred_trajs_for_value_estimations
+        #     additional_info["values"] = utils.to_np(torch.stack(values_in_denoising))
+
+        trajectories = Trajectories(actions, observations)
+
+        # if return_statistics:
+        #     return action, trajectories, additional_info
+        # else:
+        #     return action, trajectories
+        return action, trajectories
+    
+    def sample_and_rank(self, plans, conditions):
+        values = np.zeros(len(plans))
+        for s in range(len(plans)):
+            plan = plans[s][0]
+            for t in range(1, plan.shape[0]):
+                pos_diff = torch.linalg.norm(plan[t, :2] - plan[t-1, :2], dim=-1)
+                # breakpoint()
+                if pos_diff > 1.0:
+                    values[s] = 0
+                    break
+                if torch.linalg.norm(plan[t, :2] - conditions[self.diffusion_model.horizon - 1][0, :2], axis=-1) < 1.0:
+                    values[s] = (self.diffusion_model.horizon - t) / self.diffusion_model.horizon
+                    break
+
+        best_plan_idx = np.argmax(values)
+
+        plan = plans[best_plan_idx]
+
+        return plan
+        
 
 def every_value_antmaze(traj2compare, goal_point):
     dist = -torch.linalg.norm(
@@ -500,7 +645,7 @@ class TrueValueGuidedAntmazePolicy_RS:
     def __call__(self, conditions, batch_size=1, **kwargs):
         # breakpoint()
         scale = kwargs.get('scale', self.scale)
-        print('scale', scale)
+        # print('scale', scale)
         scale = torch.tensor(scale).to(device = self.diffusion_model.betas.device)
 
         conditions = self._format_conditions(conditions, batch_size)
@@ -767,7 +912,7 @@ class TrueValueGuidedVisPolicy:
     def __call__(self, conditions, batch_size=1, **kwargs):
         # breakpoint()
         scale = kwargs.get('scale', self.scale)
-        print('scale', scale)
+        # print('scale', scale)
         conditions = self._format_conditions(conditions, batch_size)
         ## batchify and move to tensor [ batch_size x observation_dim ]
         # observation_np = observation_np[None].repeat(batch_size, axis=0)

@@ -303,7 +303,7 @@ class GaussianDiffusion(nn.Module):
         log_variance = extract(self.log_one_minus_alphas_cumprod, t, x_start.shape)
         return mean, variance, log_variance
 
-    def p_losses(self, x_start, cond, t, return_rec=False):
+    def p_losses(self, x_start, cond, t, return_rec=False, teacher_model=None):
         noise = torch.randn_like(x_start)
 
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
@@ -318,9 +318,24 @@ class GaussianDiffusion(nn.Module):
 
         if self.predict_epsilon:
             loss, info = self.loss_fn(x_recon, noise)
+            if teacher_model is not None:
+                _, s_pred_sample = self.p_sample(x_start, cond, t)
+                with torch.no_grad():
+                    t_pred_sample = x_start.clone()                    
+                    for i in range(4):
+                        t_teacher = torch.clamp(t * 4 - i, min=0)
+                        _, t_pred_sample = teacher_model.p_sample(t_pred_sample, cond, t_teacher)
+                        if self.condition:
+                            # t_pred = self.apply_conditioning(t_pred, cond)
+                            t_pred_sample = self.apply_conditioning(t_pred_sample, cond)
+
+                # Calculate distillation loss: student's (conditioned) epsilon vs teacher's refined target epsilon.
+                distillation_loss, distillation_info = self.loss_fn(s_pred_sample, t_pred_sample)
+                # print(distillation_info)
+                loss += distillation_loss
+                info['d_loss'] = distillation_loss
         else:
             loss, info = self.loss_fn(x_recon, x_start)
-
         if return_rec:
             return loss, info, x_recon
         else:
@@ -332,11 +347,12 @@ class GaussianDiffusion(nn.Module):
         cond,
         return_rec=False,
         eval_n=None,
+        teacher_model=None, # for distillation
     ):
         batch_size = len(x)
         device = x.device
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
-        return self.p_losses(x, cond, t, return_rec)
+        return self.p_losses(x, cond, t, return_rec, teacher_model)
 
     def forward(self, cond, *args, **kwargs):
         return self.conditional_sample(cond=cond, *args, **kwargs)

@@ -26,12 +26,9 @@ args = Parser().parse_args("diffusion")
 # -----------------------------------------------------------------------------#
 # ---------------------------------- dataset ----------------------------------#
 # -----------------------------------------------------------------------------#
-use_stitched_data = args.use_stitched_data if hasattr(args, "use_stitched_data") else False
-use_short_data = args.use_short_data if hasattr(args, "use_short_data") else False
-max_round = args.max_round if hasattr(args, "max_round") else -1
 # Previous models used only the 10k last episodes -> I do not want to mess up with their training
-max_n_episodes = args.max_n_episodes if hasattr(args, "max_n_episodes") else 10000
-stitched_method = args.stitched_method if hasattr(args, "stitched_method") else "linear" # to enable backward compatibility
+progressive_distillation = args.progressive_distillation if hasattr(args, "progressive_distillation") else False
+teacher_path = args.teacher_path if hasattr(args, "teacher_path") else None
 
 dataset_config = utils.Config(
     args.loader,
@@ -44,12 +41,6 @@ dataset_config = utils.Config(
     max_path_length=args.max_path_length,
     jump=args.jump,
     jump_action=args.jump_action,
-    use_stitched_data=use_stitched_data,
-    use_short_data=use_short_data,
-    max_round=max_round,
-    max_n_episodes=max_n_episodes,
-    stitched_method=stitched_method,
-    only_start_condition=args.only_start_condition,
 )
 
 render_config = utils.Config(
@@ -125,7 +116,20 @@ trainer_config = utils.Config(
 # -----------------------------------------------------------------------------#
 
 model = model_config()
-
+if progressive_distillation:
+    assert teacher_path is not None, "Teacher path must be provided for progressive distillation."
+    import copy, torch
+    # teacher_model = copy.deepcopy(model).to(args.device)
+    # state_dict = torch.load(teacher_path, map_location=args.device)
+    # if "model" in state_dict:
+    #     state_dict = state_dict["model"]  # Extract model parameters if nested
+    # filtered_state_dict = {k: v for k, v in state_dict.items() if k in teacher_model.state_dict()}
+    # teacher_model.load_state_dict(filtered_state_dict, strict=False)
+    # teacher_model.eval()
+    # teacher_model.n_timesteps = args.n_diffusion_steps * 4
+    teacher_model = utils.load_diffusion(args.logbase, args.dataset, args.teacher_path, epoch='latest').ema
+else:
+    teacher_model = None
 diffusion = diffusion_config(model)
 
 trainer = trainer_config(diffusion, dataset, renderer)
@@ -139,7 +143,7 @@ utils.report_parameters(model)
 
 print("Testing forward...", end=" ", flush=True)
 batch = utils.batchify(dataset[0])
-loss, _ = diffusion.loss(*batch)
+loss, _ = diffusion.loss(*batch, teacher_model=teacher_model)
 loss.backward()
 print("✓")
 
@@ -154,5 +158,4 @@ eval_sample_n = 3
 train_writer = SummaryWriter(log_dir=args.savepath + "-train")
 for i in range(n_epochs):
     print(f"Epoch {i} / {n_epochs} | {args.savepath}")
-
-    trainer.train(n_train_steps=args.n_steps_per_epoch, writer=train_writer)
+    trainer.train(n_train_steps=args.n_steps_per_epoch, writer=train_writer, teacher_model=teacher_model)
