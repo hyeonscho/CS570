@@ -156,6 +156,18 @@ n_epochs = int(args.n_train_steps // args.n_steps_per_epoch)
 eval_sample_n = 3
 
 train_writer = SummaryWriter(log_dir=args.savepath + "-train")
-for i in range(n_epochs):
-    print(f"Epoch {i} / {n_epochs} | {args.savepath}")
-    trainer.train(n_train_steps=args.n_steps_per_epoch, writer=train_writer, teacher_model=teacher_model)
+while True:
+    for i in range(n_epochs):
+        print(f"Epoch {i} / {n_epochs} | {args.savepath}")
+        trainer.train(n_train_steps=args.n_steps_per_epoch, writer=train_writer, teacher_model=teacher_model)
+    if progressive_distillation:
+        teacher_model = trainer.ema_model        
+        diffusion_config.n_timesteps = diffusion_config.n_timesteps  // 2
+        if diffusion_config.n_timesteps < 1:
+            print("Stopping progressive distillation as n_timesteps is 1.")
+            break
+        model = model_config()
+        diffusion = diffusion_config(model)
+        trainer = trainer_config(diffusion, dataset, renderer)
+    else:
+        break

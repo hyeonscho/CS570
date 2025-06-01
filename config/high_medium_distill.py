@@ -31,10 +31,10 @@ plan_args_to_watch = [
 
 logbase = "logs"
 progressive_distillation = True
-# teacher_path = './logs/pointmaze-medium-navigate-v0/H495_T256_J15/state_196000.pt'
+teacher_path = 'H495_T256_J15/'
 # teacher_path = './logs/pointmaze-medium-navigate-v0/diffuserhigh_distill/release_H495_T128_J15/state_196000.pt'
 # teacher_path = './logs/pointmaze-medium-navigate-v0/diffuserhigh_distill/release_H495_T64_J15/state_98000.pt'
-teacher_path = "./logs/pointmaze-medium-navigate-v0/diffuserhigh_distill/release_H495_T32_J15/state_98000.pt"
+# teacher_path = "./logs/pointmaze-medium-navigate-v0/diffuserhigh_distill/release_H495_T32_J15/state_98000.pt"
 base = {
     "diffusion": {
         "progressive_distillation": progressive_distillation,
@@ -46,7 +46,7 @@ base = {
         "jump": 15,
         "jump_action": "none",
         "condition": True,
-        "n_diffusion_steps": 16,
+        "n_diffusion_steps": 128, # 256 => 128 => 64 => 32
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
@@ -68,12 +68,12 @@ base = {
         "max_path_length": 990,  # 1000
         ## serialization
         "logbase": logbase,
-        "prefix": "high_distill/release",
+        "prefix": "high_distill_final/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
         "loss_type": "l2",
-        "n_train_steps": 1e5, # 2e6
+        "n_train_steps": 5e4, # 2e6
         "batch_size": 32,
         "learning_rate": 2e-4,
         "gradient_accumulate_every": 2,

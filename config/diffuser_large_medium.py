@@ -39,7 +39,7 @@ base = {
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
@@ -61,6 +61,7 @@ base = {
         "max_path_length": 1000,
         ## serialization
         "logbase": logbase,
+        "prefix": "_diffuser_no_distill",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,

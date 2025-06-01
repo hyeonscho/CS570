@@ -322,8 +322,8 @@ class GaussianDiffusion(nn.Module):
                 _, s_pred_sample = self.p_sample(x_start, cond, t)
                 with torch.no_grad():
                     t_pred_sample = x_start.clone()                    
-                    for i in range(4):
-                        t_teacher = torch.clamp(t * 4 - i, min=0)
+                    for i in range(2):
+                        t_teacher = torch.clamp(t * 2 - i, min=0)
                         _, t_pred_sample = teacher_model.p_sample(t_pred_sample, cond, t_teacher)
                         if self.condition:
                             # t_pred = self.apply_conditioning(t_pred, cond)

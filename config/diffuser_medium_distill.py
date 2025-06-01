@@ -29,9 +29,9 @@ plan_args_to_watch = [
     ("restricted_pd", "rpd"),
 ]
 progressive_distillation = True
-# teacher_path = './logs/pointmaze-medium-navigate-v0/diffuser_ogbench_navigate_valueGuidance/H500_T256_J1/state_196000.pt'
+teacher_path = 'diffuser_ogbench_navigate_valueGuidance/H500_T256_J1/'
 # teacher_path = './logs/pointmaze-medium-navigate-v0/H500_T128_J1/state_20000.pt'
-teacher_path = './logs/pointmaze-medium-navigate-v0/H500_T64_J1/state_18800.pt'
+# teacher_path = './logs/pointmaze-medium-navigate-v0/H500_T64_J1/state_18800.pt'
 logbase = "logs"
 base = {
     "diffusion": {
@@ -44,7 +44,7 @@ base = {
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
-        "n_diffusion_steps": 64,
+        "n_diffusion_steps": 128,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
@@ -66,11 +66,12 @@ base = {
         "max_path_length": 1000,
         ## serialization
         "logbase": logbase,
+        "prefix": "distill_final/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
         "loss_type": "l2",
-        "n_train_steps": 2e4, # 2e6
+        "n_train_steps": 5e4, # 2e6
         "batch_size": 32,
         "learning_rate": 2e-4,
         "gradient_accumulate_every": 2,

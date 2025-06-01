@@ -39,7 +39,7 @@ base = {
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
-        "n_diffusion_steps": 16,
+        "n_diffusion_steps": 64,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
