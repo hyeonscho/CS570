@@ -32,7 +32,8 @@ plan_args_to_watch = [
 logbase = "logs"
 progressive_distillation = True
 # teacher_path = './logs/pointmaze-large-navigate-v0/H495_T256_J15/state_196000.pt'
-teacher_path = 'H495_T256_J15/'
+# teacher_path = 'H495_T256_J15/'
+teacher_path = 'diffuserhigh_distill_final_H495_T32_J15/'
 base = {
     "diffusion": {
         "progressive_distillation": progressive_distillation,
@@ -44,7 +45,7 @@ base = {
         "jump": 15,
         "jump_action": "none",
         "condition": True,
-        "n_diffusion_steps": 128,
+        "n_diffusion_steps": 16,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,

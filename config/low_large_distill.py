@@ -33,7 +33,7 @@ logbase = "logs"
 prefixGlobal = "_low_level_distill/"
 progressive_distillation = True
 # teacher_path = './logs/pointmaze-medium-navigate-v0/diffusion/H16_T128_J1/state_120000.pt'
-teacher_path = "diffusion/H16_T128_J1/"
+teacher_path = "distill_final/H16_T16_J1/"
 base = {
     "diffusion": {
         "progressive_distillation": progressive_distillation,
@@ -45,7 +45,7 @@ base = {
         "jump": 1,
         "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 64, # 128 => 32 => 8 => 2
+        "n_diffusion_steps": 8, # 128 => 32 => 8 => 2
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
