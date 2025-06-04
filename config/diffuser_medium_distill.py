@@ -29,7 +29,7 @@ plan_args_to_watch = [
     ("restricted_pd", "rpd"),
 ]
 progressive_distillation = True
-teacher_path = 'diffuserdistill_final/H500_T128_J1/'
+teacher_path = 'diffuserdistill_final/H500_T8_J1/'
 # teacher_path = './logs/pointmaze-medium-navigate-v0/H500_T128_J1/state_20000.pt'
 # teacher_path = './logs/pointmaze-medium-navigate-v0/H500_T64_J1/state_18800.pt'
 logbase = "logs"
@@ -44,7 +44,7 @@ base = {
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
-        "n_diffusion_steps": 64,
+        "n_diffusion_steps": 4,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,

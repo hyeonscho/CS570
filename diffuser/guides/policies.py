@@ -18,8 +18,11 @@ def last_value(traj2compare, goal_point):
     return torch.exp(dist)
 
 def every_value(traj2compare, goal_point):
-    dist = -torch.linalg.norm(
-        traj2compare[..., 2:] - goal_point, dim=-1) # (b, t, c') -> (b, t)
+    if traj2compare.shape == goal_point.shape:
+        dist = -torch.linalg.norm(traj2compare - goal_point, dim=-1) # (b, t, c') -> (b, t)
+    else:
+        dist = -torch.linalg.norm(
+            traj2compare[..., 2:] - goal_point, dim=-1) # (b, t, c') -> (b, t)
     return torch.exp(dist).sum(-1)
 
 class TrueValueGuide(nn.Module):
@@ -32,7 +35,10 @@ class TrueValueGuide(nn.Module):
         if self.func_type == "every":
             goal_point = cond[self.horizon-1]
             goal_point = torch.tile(goal_point[:, None, :], (1, x.shape[1], 1))
-            goal_point[..., 2:] = x[..., 4:]
+            if goal_point.shape == x.shape:
+                goal_point[..., 2:] = x[..., 2:]
+            else:
+                goal_point[..., 2:] = x[..., 4:]
             row_score = every_value(x, goal_point)
         elif self.func_type == "last":
             goal_point = cond[self.horizon-1]
@@ -83,8 +89,8 @@ class TrueValueGuidedPolicy:
         traj_cond = {0: cond[0]}
         for _ in range(n_guide_steps):
             with torch.enable_grad():
-                x_g = self.diffusion_model.predict_start_from_noise(x, t, self.diffusion_model.model(x, traj_cond, t))
-                y, grad = guide.gradients(x_g, cond, t)
+                x_g = self.diffusion_model.predict_start_from_noise(x, t, self.diffusion_model.model(x, traj_cond, t)) # d: (1, 500, 6)
+                y, grad = guide.gradients(x_g, cond, t) # 499, (1, 4)
             
             if scale_grad_by_std:
                 grad = model_var * grad
@@ -140,14 +146,16 @@ class TrueValueGuidedPolicy:
             # progress.close()
 
         sample = utils.to_np(x)
-
-        ## extract action [ batch_size x horizon x transition_dim ]
-        actions = sample[:, :, : self.diffusion_model.action_dim]
-        actions = self.normalizer.unnormalize(actions, 'actions')
-        # actions = np.tanh(actions)
-
-        ## extract first action
-        action = actions[0, 0]
+        if sample.shape[-1] == 4:
+            actions = None
+            action = None
+        else:
+            ## extract action [ batch_size x horizon x transition_dim ]
+            actions = sample[:, :, : self.diffusion_model.action_dim]
+            actions = self.normalizer.unnormalize(actions, 'actions')
+            # actions = np.tanh(actions)
+            ## extract first action
+            action = actions[0, 0]
 
         # if debug:
         normed_observations = sample[:, :, self.action_dim:]

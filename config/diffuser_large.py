@@ -92,19 +92,22 @@ base = {
         "kernel_size": 5,
         "dim": 32,
         "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 8,
         "normalizer": "LimitsNormalizer",
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans/release",
+        "prefix": "diff_distill/",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": True,
         ## loading
-        "diffusion_loadpath": "f:diffuser{prefixGlobal}H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # /home/hyeons/CS570/logs/pointmaze-large-navigate-v0/diffuser_ogbench_navigate_valueGuidance/H500_T256_J1
+        # "diffusion_loadpath": "f:diffuser{prefixGlobal}H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "diffuser_ogbench_navigate_valueGuidance/H500_T256_J1",
+        "diffusion_loadpath": "diffuserdistill_final/H500_T8_J1",
         "diffusion_epoch": "latest", #1000000,
     },
 }

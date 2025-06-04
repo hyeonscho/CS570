@@ -32,7 +32,7 @@ plan_args_to_watch = [
 logbase = "logs"
 prefixGlobal = "_low_level_distill/"
 progressive_distillation = True
-teacher_path = 'distill_final/H16_T16_J1/'
+teacher_path = 'distill_final/H16_T2_J1/'
 # teacher_path = 'distill_final/H16_T64_J1/'
 # teacher_path = "./logs/pointmaze-medium-navigate-v0/diffusion_distill/H16_T64_J1/state_117600.pt"
 # teacher_path = "./logs/pointmaze-medium-navigate-v0/diffusion_distill/H16_T32_J1/state_117600.pt"
@@ -48,7 +48,7 @@ base = {
         "jump": 1,
         "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 8, # 128 => 32 => 8 => 2
+        "n_diffusion_steps": 1, # 128 => 32 => 8 => 2
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,

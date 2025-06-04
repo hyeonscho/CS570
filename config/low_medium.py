@@ -106,7 +106,9 @@ base = {
         "transfer": "none",
         "restricted_pd": True,
         ## loading
-        "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "diffusion/H16_T128_J1",
+        "diffusion_loadpath": "distill_final/H16_T2_J1",
         "diffusion_epoch": "latest",
     },
 }

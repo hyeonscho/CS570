@@ -8,7 +8,7 @@ from diffuser.utils import watch
 ## by labelling folders with these args
 
 diffusion_args_to_watch = [
-    ("prefix", "diffuser"),
+    ("prefix", ""),
     ("horizon", "H"),
     ("n_diffusion_steps", "T"),
     ("jump", "J"),
@@ -30,23 +30,24 @@ plan_args_to_watch = [
 ]
 
 logbase = "logs"
+prefixGlobal = "_low_level/"
 base = {
     "diffusion": {
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
-        "horizon": 495, # 500, # 1000
-        "jump": 15,
-        "jump_action": "none",
+        "horizon": 16,
+        "jump": 1,
+        "jump_action": False,
         "condition": True,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 128,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
         "predict_epsilon": True,
         "dim_mults": (1, 4, 8),
-        "upsample_k": (3, 3, 3),
-        "downsample_k": (3, 3, 3),
+        "upsample_k": (4, 4),
+        "downsample_k": (4, 4),
         "kernel_size": 5,
         "dim": 32,
         "renderer": "utils.Maze2dRenderer",
@@ -61,11 +62,12 @@ base = {
         "max_path_length": 990,  # 1000
         ## serialization
         "logbase": logbase,
+        "prefix": "diffusion/",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
         "loss_type": "l2",
-        "n_train_steps": 2e5, # 2e6
+        "n_train_steps": 2e5,
         "batch_size": 32,
         "learning_rate": 2e-4,
         "gradient_accumulate_every": 2,
@@ -83,62 +85,39 @@ base = {
         "batch_size": 1,
         "device": "cuda",
         ## diffusion model
-        "horizon": 495,
-        "jump": 15,
-        "jump_action": "none",
+        "horizon": 16,
+        "jump": 1,
+        "jump_action": 1, #"none",
         "attention": False,
         "condition": True,
         "kernel_size": 5,
         "dim": 32,
         "mask": False,
-        "n_diffusion_steps": 256,
+        "n_diffusion_steps": 2,
         "normalizer": "LimitsNormalizer",
         "logbase": logbase,
         ## serialization
-        "vis_freq": 10,
-        "prefix": "plans/release",
+        "vis_freq": 10,        
+        "prefix": "eval_hdd/",
+        "prefixGlobal": prefixGlobal,
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": True,
         ## loading
-        "diffusion_loadpath": "f:diffuser{prefixGlobal}H{horizon}_T{n_diffusion_steps}_J{jump}",
-        "diffusion_epoch": "latest", #1000000,
+        # "diffusion_loadpath": "f:diffusion/H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "diffusion/H16_T128_J1",
+        "diffusion_loadpath": "distill_final/H16_T2_J1",
+        "diffusion_epoch": "latest",
     },
 }
 
 # ------------------------ overrides ------------------------#
 
-# """
-#     maze2d maze episode steps:
-#         umaze: 150
-#         medium: 250
-#         large: 600
-# """
-
-# maze2d_umaze_v1 = {
-#     "diffusion": {
-#         "horizon": 120,
-#         "n_diffusion_steps": 64,
-#         "upsample_k": (4, 4, 4),
-#         "downsample_k": (4, 4, 4),
-#     },
-#     "plan": {
-#         "horizon": 120,
-#         "n_diffusion_steps": 64,
-#     },
-# }
-
-# maze2d_large_v1 = {
-#     "diffusion": {
-#         "horizon": 300,
-#         "n_diffusion_steps": 256,
-#         "upsample_k": (4, 4),
-#         "downsample_k": (3, 3),
-#     },
-#     "plan": {
-#         "horizon": 300,
-#         "n_diffusion_steps": 256,
-#     },
-# }
+"""
+    maze2d maze episode steps:
+        umaze: 150
+        medium: 250
+        large: 600
+"""

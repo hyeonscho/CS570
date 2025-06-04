@@ -30,7 +30,7 @@ plan_args_to_watch = [
 ]
 progressive_distillation = True
 # teacher_path = 'diffuser_ogbench_navigate_valueGuidance/H500_T256_J1/'
-teacher_path = 'diffuserdistill_final/H500_T64_J1/'
+teacher_path = 'diffuserdistill_final/H500_T4_J1/'
 logbase = "logs"
 base = {
     "diffusion": {
@@ -43,7 +43,7 @@ base = {
         "jump": 1,
         "jump_action": 1,#"none",
         "condition": True,
-        "n_diffusion_steps": 32,
+        "n_diffusion_steps": 2,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,

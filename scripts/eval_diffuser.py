@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 os.environ["MUJOCO_GL"] = "egl"
 os.environ["MUJOCO_RENDERER"] = "egl"
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +10,7 @@ import numpy as np
 from os.path import join
 import time
 
-from diffuser.guides.policies import TrueValueGuidedPolicy, TrueValueGuide
+from diffuser.guides.policies import TrueValueGuidedPolicy, TrueValueGuide, Policy
 import diffuser.datasets as datasets
 import diffuser.utils as utils
 
@@ -24,7 +25,7 @@ n_samples = 50
 args = Parser().parse_args('plan', add_extras=True)
 args.savepath = args.savepath[:-1] + 'time_log'
 save_path = args.savepath
-restricted_pd = args.restricted_pd
+restricted_pd = True
 
 from diffuser.utils.serialization import mkdir
 mkdir(save_path)
@@ -32,6 +33,7 @@ mkdir(save_path)
 if 'stitched' in args.dataset:
     env = datasets.load_environment(args.dataset.split('stitched-')[1])
 else:
+    # print(args.dataset) # pointmaze-medium-navigate-v0
     env = datasets.load_environment(args.dataset)
 
 diffusion_experiment = utils.load_diffusion(
@@ -41,12 +43,14 @@ diffusion_experiment = utils.load_diffusion(
 diffusion = diffusion_experiment.ema
 dataset = diffusion_experiment.dataset
 renderer = diffusion_experiment.renderer
+diffusion.n_timesteps = args.n_diffusion_steps
 guide = TrueValueGuide('every', diffusion.horizon)
 policy = TrueValueGuidedPolicy(guide, diffusion, dataset.normalizer)
+# policy = Policy(diffusion, dataset.normalizer)
 
 # 여기서 horizon이 100이면 총 1000 step을 위해 10번 더 길게 반복
 # max_planning_steps = args.horizon #env.max_episode_steps
-max_planning_steps = 1000 if 'giant' in args.dataset else 500
+max_planning_steps = 500
 
 
 scores = []
@@ -75,7 +79,6 @@ for i in range(n_samples):
             # # cond[0][:2] = (cond[0][:2]-1)*4
             # cond[diffusion.horizon - 1][:2] = (cond[diffusion.horizon - 1][:2]-1)*4
             # breakpoint()
-
             _, samples = policy(cond, batch_size=args.batch_size)
             planning_time = time.time() - start_time
             plan = samples.observations
@@ -87,7 +90,7 @@ for i in range(n_samples):
         else:
             if restricted_pd:
                 xy = observation.copy()[:2]
-                goal = env._target
+                goal = target
                 target_goal_dist = np.linalg.norm(xy - goal)
                 if target_goal_dist <= distance_threshold:
                     next_waypoint = sequence[-1].copy()
@@ -113,8 +116,7 @@ for i in range(n_samples):
 
     plan_rollout = [np.array(plan)[0], np.array(rollout)]
     renderer.composite(join(args.savepath, f'plan_rollout{i}.png'), plan_rollout, ncol=2)
-
-    print(f" {i} / {n_samples}\t t: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | ")
+    print(f" {i} / {n_samples}\t t: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | Time: {planning_time:.2f} | ")
 
     json_path = join(args.savepath, f"idx{i}_rollout.json")
     json_data = {'step': t, 'return': total_reward, 'term': terminal,

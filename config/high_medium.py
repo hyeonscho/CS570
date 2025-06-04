@@ -30,14 +30,8 @@ plan_args_to_watch = [
 ]
 
 logbase = "logs"
-progressive_distillation = True
-# teacher_path = './logs/pointmaze-large-navigate-v0/H495_T256_J15/state_196000.pt'
-# teacher_path = 'H495_T256_J15/'
-teacher_path = 'diffuserhigh_distill_final_H495_T4_J15/'
 base = {
     "diffusion": {
-        "progressive_distillation": progressive_distillation,
-        "teacher_path": teacher_path,
         ## model
         "model": "models.TemporalUnet",
         "diffusion": "models.GaussianDiffusion",
@@ -45,7 +39,7 @@ base = {
         "jump": 15,
         "jump_action": "none",
         "condition": True,
-        "n_diffusion_steps": 2,
+        "n_diffusion_steps": 256,
         "action_weight": 0.0,
         "loss_weights": None,
         "loss_discount": 1,
@@ -67,12 +61,11 @@ base = {
         "max_path_length": 990,  # 1000
         ## serialization
         "logbase": logbase,
-        "prefix": "high_distill_final",
         "exp_name": watch(diffusion_args_to_watch),
         ## training
         "n_steps_per_epoch": 10000,
         "loss_type": "l2",
-        "n_train_steps": 5e4, # 2e6
+        "n_train_steps": 2e5, # 2e6
         "batch_size": 32,
         "learning_rate": 2e-4,
         "gradient_accumulate_every": 2,
@@ -103,14 +96,17 @@ base = {
         "logbase": logbase,
         ## serialization
         "vis_freq": 10,
-        "prefix": "plans/release",
+        # "prefix": "plans/release",
+        "prefix": "hdd_medium/",
         "exp_name": watch(plan_args_to_watch),
         "suffix": "0",
         "conditional": False,
         "transfer": "none",
         "restricted_pd": True,
         ## loading
-        "diffusion_loadpath": "f:diffuser{prefixGlobal}H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "f:diffuser{prefixGlobal}H{horizon}_T{n_diffusion_steps}_J{jump}",
+        # "diffusion_loadpath": "H495_T256_J15",
+        "diffusion_loadpath": "diffuserhigh_distill_final/H495_T4_J15",
         "diffusion_epoch": "latest", #1000000,
     },
 }
